@@ -5,22 +5,82 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>JAWIIL Primary and Secondary School</title>
 <link rel="stylesheet" href="style.css">
+<style>
+  /* Login layer added for the new role-based system */
+  #loginScreen{
+    position:fixed;inset:0;z-index:9999;
+    display:flex;align-items:center;justify-content:center;
+    background:#f4f7fb;padding:20px;
+  }
+  #loginScreen.hidden{display:none}
+  .login-card{
+    width:min(420px,100%);background:#fff;border-radius:18px;
+    padding:28px;box-shadow:0 10px 35px rgba(0,0,0,.12);
+  }
+  .login-card h1{margin:0 0 6px;text-align:center}
+  .login-card p{text-align:center;color:#666;margin:0 0 22px}
+  .login-card input{
+    width:100%;box-sizing:border-box;padding:13px;margin:7px 0;
+    border:1px solid #d7dce5;border-radius:10px;font-size:16px;
+  }
+  .login-card button{
+    width:100%;padding:13px;margin-top:10px;border:0;border-radius:10px;
+    cursor:pointer;font-size:16px;font-weight:600;
+  }
+  #loginBtn{background:#1677ff;color:#fff}
+  #logoutBtn{background:#eee}
+  #loginMsg{min-height:22px;margin-top:10px;text-align:center;color:#c0392b}
+  .userbox{display:flex;align-items:center;gap:8px}
+  .role-badge{
+    display:inline-block;padding:4px 9px;border-radius:999px;
+    background:#eaf2ff;color:#1769d2;font-size:12px;font-weight:700;
+  }
+  #userEmail{font-size:13px}
+  #users.page .panel{margin-bottom:18px}
+</style>
 </head>
 <body>
-<div class="app">
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-card">
+    <h1>JAWIIL SCHOOL</h1>
+    <p>School Management System</p>
+    <input id="loginEmail" type="email" placeholder="Email" autocomplete="username">
+    <input id="loginPassword" type="password" placeholder="Password" autocomplete="current-password">
+    <button id="loginBtn">🔐 Login</button>
+    <div id="loginMsg"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="app" id="appShell" style="display:none">
   <aside class="sidebar">
     <div class="brand">JAWIIL<br><small>School Management</small></div>
+
     <button class="nav active" data-page="dashboard">🏠 Dashboard</button>
-    <button class="nav" data-page="students">👨‍🎓 Student Registration</button>
-    <button class="nav" data-page="exams">📝 Exam Entry</button>
-    <button class="nav" data-page="results">📊 Exam Results</button>
-    <button class="nav" data-page="finance">💰 Finance</button>
+    <button class="nav" data-page="students" data-role="admin">👨‍🎓 Student Registration</button>
+    <button class="nav" data-page="exams" data-role="admin,exam_officer">📝 Exam Entry</button>
+    <button class="nav" data-page="results" data-role="admin,exam_officer,student">📊 Exam Results</button>
+    <button class="nav" data-page="finance" data-role="admin,treasurer">💰 Finance</button>
+    <button class="nav" data-page="users" data-role="admin">👥 Users & Roles</button>
+
+    <button id="logoutBtn" class="nav">🚪 Logout</button>
   </aside>
 
   <main class="main">
     <header class="topbar">
-      <div><h1>JAWIIL Primary and Secondary School</h1><p>Student Management System</p></div>
-      <div id="connection" class="connection">Checking database…</div>
+      <div>
+        <h1>JAWIIL Primary and Secondary School</h1>
+        <p>Student Management System</p>
+      </div>
+      <div>
+        <div id="connection" class="connection">Checking database…</div>
+        <div class="userbox">
+          <span id="userEmail"></span>
+          <span id="userRole" class="role-badge"></span>
+        </div>
+      </div>
     </header>
 
     <section id="dashboard" class="page active">
@@ -129,10 +189,117 @@
         <div class="tablewrap"><table><thead><tr><th>Student</th><th>Fee</th><th>Total</th><th>Paid</th><th>Balance</th><th>Date</th><th>Method</th><th>Action</th></tr></thead><tbody id="financeRows"></tbody></table></div>
       </div>
     </section>
+
+    <!-- ADMIN USERS / ROLES -->
+    <section id="users" class="page">
+      <h2>👥 Users & Roles</h2>
+      <div class="panel">
+        <h3>Role Management</h3>
+        <p>Admin-ka ayaa maamula roles-ka users-ka.</p>
+        <div class="formgrid">
+          <input id="role_user_id" placeholder="User ID (Auth UUID)">
+          <input id="role_email" placeholder="User Email">
+          <input id="role_full_name" placeholder="Full Name">
+          <select id="role_select">
+            <option value="admin">Admin</option>
+            <option value="exam_officer">Exam Officer</option>
+            <option value="treasurer">Treasurer</option>
+            <option value="student">Student</option>
+          </select>
+          <input id="role_student_id" placeholder="Student ID (Student role only)">
+          <button id="saveRoleBtn" class="primary">💾 Save Role</button>
+        </div>
+        <div id="roleMsg" class="msg"></div>
+      </div>
+      <div class="panel">
+        <h3>Existing Profiles</h3>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>User ID</th><th>Email</th><th>Name</th><th>Role</th><th>Student ID</th></tr></thead>
+            <tbody id="profileRows"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
   </main>
 </div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
+
+<!-- Auth gate: checks Supabase session before opening the application -->
+<script>
+(async function(){
+  const loginScreen = document.getElementById('loginScreen');
+  const appShell = document.getElementById('appShell');
+  const loginMsg = document.getElementById('loginMsg');
+  const emailEl = document.getElementById('loginEmail');
+  const passEl = document.getElementById('loginPassword');
+  const loginBtn = document.getElementById('loginBtn');
+  const logoutBtn = document.getElementById('logoutBtn');
+
+  function showLogin(message=''){
+    loginScreen.classList.remove('hidden');
+    appShell.style.display='none';
+    loginMsg.textContent=message;
+  }
+
+  async function loadProfile(session){
+    const {data,error} = await db
+      .from('profiles')
+      .select('user_id,email,full_name,role,student_id')
+      .eq('user_id', session.user.id)
+      .maybeSingle();
+
+    if(error) throw error;
+    if(!data) throw new Error('Profile-ka user-kan lama helin.');
+    document.getElementById('userEmail').textContent = data.email || session.user.email || '';
+    document.getElementById('userRole').textContent = (data.role || '').replace('_',' ').toUpperCase();
+    document.body.dataset.role = data.role || '';
+    window.currentProfile = data;
+
+    document.querySelectorAll('[data-role]').forEach(el=>{
+      const allowed=(el.dataset.role||'').split(',').map(x=>x.trim());
+      el.style.display = allowed.includes(data.role) ? '' : 'none';
+    });
+
+    loginScreen.classList.add('hidden');
+    appShell.style.display='flex';
+  }
+
+  async function checkSession(){
+    const {data:{session}} = await db.auth.getSession();
+    if(!session){ showLogin(); return; }
+    try{ await loadProfile(session); }
+    catch(e){ await db.auth.signOut(); showLogin(e.message); }
+  }
+
+  loginBtn.addEventListener('click', async ()=>{
+    loginMsg.textContent='Logging in...';
+    const email=emailEl.value.trim();
+    const password=passEl.value;
+    if(!email || !password){ loginMsg.textContent='Email iyo password geli.'; return; }
+
+    const {data,error}=await db.auth.signInWithPassword({email,password});
+    if(error){ loginMsg.textContent=error.message; return; }
+
+    try{ await loadProfile(data.session); }
+    catch(e){ await db.auth.signOut(); showLogin(e.message); }
+  });
+
+  passEl.addEventListener('keydown',e=>{
+    if(e.key==='Enter') loginBtn.click();
+  });
+
+  logoutBtn.addEventListener('click',async ()=>{
+    await db.auth.signOut();
+    location.reload();
+  });
+
+  await checkSession();
+})();
+</script>
+
 <script src="app.js"></script>
 </body>
 </html>
