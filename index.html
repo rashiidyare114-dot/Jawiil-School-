@@ -13,14 +13,11 @@
     <button class="nav active" data-page="dashboard">🏠 Dashboard</button>
     <button class="nav" data-page="students">🎓 Students</button>
     <button class="nav" data-page="exams">📝 Exam Entry</button>
-    <button class="nav" data-page="results">📊 Results</button>
+    <button class="nav" data-page="results">📊 Exam Results</button>
     <button class="nav" data-page="finance">💰 Finance</button>
   </aside>
-
   <main class="main">
-    <header class="topbar">
-      <div><h1>JAWIIL Primary and Secondary School</h1><p>Student Management System</p></div>
-    </header>
+    <header class="topbar"><div><h1>JAWIIL Primary and Secondary School</h1><p>Student Management System</p></div></header>
 
     <section id="dashboard" class="page active">
       <h2>Dashboard</h2>
@@ -30,7 +27,7 @@
         <div class="card"><b id="statResults">0</b><span>Results</span></div>
         <div class="card"><b id="statPaid">$0.00</b><span>Total Paid</span></div>
       </div>
-      <div class="panel welcome"><h3>Welcome</h3><p>Register students, define exam entries, enter all subject results together and manage school finance.</p></div>
+      <div class="panel welcome"><h3>Welcome</h3><p>Register students, enter complete exam data, view student results and manage school finance.</p></div>
     </section>
 
     <section id="students" class="page">
@@ -58,7 +55,7 @@
     <section id="exams" class="page">
       <h2>📝 Exam Entry</h2>
       <div class="panel">
-        <p class="hint">Geli Student ID-ga. Magaca, level-ka iyo class-ka ardayga si automatic ah ayey u soo baxayaan.</p>
+        <p class="hint">Halkan ayaa lagu geliyaa <b>dhammaan xogta exam-ka iyo marks-ka</b>. Student ID geli, xogta ardayga ayaa automatic u soo baxaysa. Dhammaan maadooyinka heerka ardayga hal mar ayaa lagu soo bandhigayaa.</p>
         <form id="examForm" class="grid">
           <input id="exam_id" placeholder="Exam ID *" required>
           <input id="exam_name" placeholder="Exam Name *" required>
@@ -66,37 +63,51 @@
           <input id="exam_student_name" placeholder="Student Name" readonly>
           <input id="exam_student_level" placeholder="School Level" readonly>
           <input id="exam_student_grade" placeholder="Class/Grade" readonly>
-          <select id="exam_level" required><option value="">School Level *</option><option>Primary</option><option>Middle</option><option>Secondary</option></select>
-          <select id="exam_grade" required><option value="">Class/Grade *</option></select>
-          <select id="subject" required><option value="">Subject *</option></select>
-          <input id="exam_year" placeholder="Academic Year"><select id="semester"><option>Semester 1</option><option>Semester 2</option><option>Annual</option></select>
-          <input id="exam_date" type="date"><input id="total_marks" type="number" value="100" min="1" placeholder="Total Marks"><input id="pass_mark" type="number" value="50" min="0" placeholder="Pass Mark">
-          <button class="primary full" type="submit">Save Exam Entry</button>
+          <input id="exam_year" placeholder="Academic Year">
+          <select id="semester"><option>Semester 1</option><option>Semester 2</option><option>Annual</option></select>
+          <input id="exam_date" type="date">
         </form>
+        <div id="examSubjects" class="subject-entry-wrap" style="display:none">
+          <h3 id="examSubjectTitle">Subjects</h3>
+          <p class="hint">Maadooyinka heerka ardayga ayaa si automatic ah hoos ugu soo baxaya. Subject kasta wuxuu leeyahay meel marks lagu geliyo.</p>
+          <div id="subjectList" class="subject-list"></div>
+          <div class="tablewrap"><table class="result-entry-table"><thead><tr><th>Subject</th><th>Total</th><th>Pass Mark</th><th>Marks Obtained</th><th>Grade</th><th>Status</th><th>Remarks</th></tr></thead><tbody id="examSubjectRows"></tbody></table></div>
+          <button id="saveExamBundle" class="primary full" type="button">Save Complete Exam</button>
+        </div>
+        <div id="examMessage" class="hint"></div>
       </div>
-      <div class="panel"><div class="tablewrap"><table><thead><tr><th>Exam ID</th><th>Student</th><th>Name</th><th>Level</th><th>Class</th><th>Subject</th><th>Year</th><th>Action</th></tr></thead><tbody id="examRows"></tbody></table></div></div>
+      <div class="panel"><div class="toolbar"><h3>Saved Exam Entries</h3><input id="examSearch" placeholder="🔎 Search student, exam, subject"></div>
+        <div class="tablewrap"><table><thead><tr><th>Exam ID</th><th>Student</th><th>Name</th><th>Level</th><th>Class</th><th>Subject</th><th>Year</th><th>Marks</th><th>Grade</th><th>Status</th><th>Action</th></tr></thead><tbody id="examRows"></tbody></table></div></div>
     </section>
 
     <section id="results" class="page">
-      <h2>📊 Student Exam Results</h2>
+      <h2>📊 Exam Results</h2>
       <div class="panel">
-        <p class="hint">Student ID iyo Exam ID geli. Kadib dhammaan maadooyinka exam-kaas ee ardayga waxay hal mar ku soo muuqanayaan.</p>
-        <div class="grid">
-          <input id="result_student_id" placeholder="Student ID *">
-          <input id="result_student_name" placeholder="Student Name" readonly>
-          <input id="result_student_level" placeholder="School Level" readonly>
-          <input id="result_student_grade" placeholder="Class/Grade" readonly>
-          <input id="result_exam_id" placeholder="Exam ID *">
-          <input id="result_exam_name" placeholder="Exam Name" readonly>
-        </div>
-        <div id="resultSubjects" class="subject-entry-wrap" style="display:none">
-          <div class="tablewrap"><table class="result-entry-table"><thead><tr><th>Subject</th><th>Total</th><th>Marks Obtained</th><th>Grade</th><th>Status</th><th>Remarks</th></tr></thead><tbody id="resultSubjectRows"></tbody></table></div>
-          <button id="saveAllResults" class="primary full" type="button">Save All Subject Results</button>
-        </div>
-        <div id="resultMessage" class="hint"></div>
+        <p class="hint"><b>Natiijooyinka kaliya (OUTPUT).</b> Wax xog ah laguma gelinayo halkan. Dhammaan natiijooyinka waxaa laga soo qaadayaa <b>Exam Entry</b>.</p>
       </div>
-      <div class="panel"><div class="toolbar"><h3>Saved Results</h3><input id="resultSearch" placeholder="🔎 Search student, subject, exam"></div>
-        <div class="tablewrap"><table><thead><tr><th>Student</th><th>Exam</th><th>Subject</th><th>Marks</th><th>Grade</th><th>Status</th><th>Action</th></tr></thead><tbody id="resultRows"></tbody></table></div>
+      <div class="panel">
+        <div class="toolbar">
+          <h3>Student Exam Results</h3>
+          <input id="resultSearch" placeholder="🔎 Search Student ID, name, exam or subject">
+        </div>
+        <div class="tablewrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Student ID</th>
+                <th>Student</th>
+                <th>Exam</th>
+                <th>Subject</th>
+                <th>Total</th>
+                <th>Marks</th>
+                <th>Grade</th>
+                <th>Status</th>
+                <th>Remarks</th>
+              </tr>
+            </thead>
+            <tbody id="resultRows"></tbody>
+          </table>
+        </div>
       </div>
     </section>
 
@@ -105,11 +116,8 @@
       <div class="panel">
         <p class="hint">Student ID geli. Magaca ardayga si automatic ah ayuu u soo baxayaa.</p>
         <form id="financeForm" class="grid">
-          <input id="transaction_id" placeholder="Transaction ID *" required>
-          <input id="finance_student_id" placeholder="Student ID *" required>
-          <input id="finance_student_name" placeholder="Student Name" readonly>
-          <input id="finance_student_level" placeholder="School Level" readonly>
-          <input id="finance_student_grade" placeholder="Class/Grade" readonly>
+          <input id="transaction_id" placeholder="Transaction ID *" required><input id="finance_student_id" placeholder="Student ID *" required>
+          <input id="finance_student_name" placeholder="Student Name" readonly><input id="finance_student_level" placeholder="School Level" readonly><input id="finance_student_grade" placeholder="Class/Grade" readonly>
           <select id="fee_type"><option>Tuition Fee</option><option>Registration Fee</option><option>Exam Fee</option><option>Other</option></select>
           <input id="total_fee" type="number" min="0" value="0" placeholder="Total Fee"><input id="amount_paid" type="number" min="0" value="0" placeholder="Amount Paid">
           <input id="balance" type="number" readonly placeholder="Balance"><input id="payment_date" type="date">
