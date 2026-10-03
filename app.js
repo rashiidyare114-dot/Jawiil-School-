@@ -5,7 +5,7 @@ const SUBJECTS={
  Secondary:["Math","Physics","Biology","Chemistry","Arabic","Af-Soomaali","English","Technology","Business","Geography","History","Islamic Study"]
 };
 const GRADES={Primary:["Grade 1","Grade 2","Grade 3","Grade 4","Grade 5","Grade 6","Grade 7","Grade 8"],Middle:["Form 1","Form 2","Form 3","Form 4"],Secondary:["Form 1","Form 2","Form 3","Form 4"]};
-let db=null, students=[], exams=[], results=[], finance=[];
+let supa=null, students=[], exams=[], results=[], finance=[];
 
 function esc(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
 function gradeOf(n){n=Number(n)||0;return n>=90?"A+":n>=80?"A":n>=70?"B":n>=60?"C":n>=50?"D":"F"}
@@ -15,20 +15,19 @@ function localGet(k){try{return JSON.parse(localStorage.getItem(k)||"[]")}catch{
 function localSet(k,v){localStorage.setItem(k,JSON.stringify(v))}
 
 async function initDb(){
-  if(typeof db==="undefined" && typeof window.supabase!=="undefined" && typeof SUPABASE_URL!=="undefined" && typeof SUPABASE_ANON_KEY!=="undefined"){
-    db=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-  }
-  $("connection").textContent=db?"Database: Connected":"Database: Local mode";
-  $("connection").className="connection "+(db?"ok":"error");
+  if(typeof db!=="undefined") supa=db;
+  else if(typeof window.supabase!=="undefined" && typeof SUPABASE_URL!=="undefined" && typeof SUPABASE_ANON_KEY!=="undefined") supa=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+  $("connection").textContent=supa?"Database: Connected":"Database: Local mode";
+  $("connection").className="connection "+(supa?"ok":"error");
 }
 
 async function loadAll(){
-  if(db){
+  if(supa){
     const [s,e,r,f]=await Promise.all([
-      db.from("students").select("*").order("created_at",{ascending:false}),
-      db.from("exams").select("*").order("created_at",{ascending:false}),
-      db.from("results").select("*").order("created_at",{ascending:false}),
-      db.from("finance").select("*").order("created_at",{ascending:false})
+      supa.from("students").select("*").order("created_at",{ascending:false}),
+      supa.from("exams").select("*").order("created_at",{ascending:false}),
+      supa.from("results").select("*").order("created_at",{ascending:false}),
+      supa.from("finance").select("*").order("created_at",{ascending:false})
     ]);
     const errs=[s,e,r,f].filter(x=>x.error);
     if(errs.length){console.error(errs); throw errs[0].error}
@@ -98,7 +97,7 @@ $("studentForm").addEventListener("submit",async e=>{
  obj.student_id=obj.student_id.trim();
  if(studentById(obj.student_id)){ $("studentMsg").textContent="Student ID-kan hore ayuu u jiraa."; $("studentMsg").className="msg error"; return}
  try{
-  if(db){const {error}=await db.from("students").insert(obj);if(error)throw error}
+  if(supa){const {error}=await supa.from("students").insert(obj);if(error)throw error}
   else{students.push({...obj,id:crypto.randomUUID()});localSet("jawiil_students",students)}
   await loadAll(); e.target.reset(); $("registration_date").value=new Date().toISOString().slice(0,10);
   $("studentMsg").textContent="Ardayga si guul leh ayaa loo diiwaangeliyey."; $("studentMsg").className="msg ok";
@@ -124,9 +123,9 @@ $("examForm").addEventListener("submit",async e=>{
  const examObj={exam_id:eid,exam_name:$("exam_name").value.trim(),student_id:s.student_id,student_name:s.full_name,level:s.level,grade:s.grade,subject:"All Subjects",academic_year:$("exam_year").value,semester:$("semester").value,exam_date:$("exam_date").value,total_marks:100,pass_mark:50};
  const resultObjs=trs.map(tr=>({student_id:s.student_id,student_name:s.full_name,exam_id:eid,subject:tr.dataset.subject,total_marks:Number(tr.querySelector(".total").value||100),marks:Number(tr.querySelector(".marks").value),grade:gradeOf(Number(tr.querySelector(".marks").value)),status:Number(tr.querySelector(".marks").value)>=Number(tr.querySelector(".pass").value)?"PASS":"FAIL",remarks:tr.querySelector(".remarks").value,created_at:new Date().toISOString()}));
  try{
-  if(db){
-   let r=await db.from("exams").insert(examObj); if(r.error)throw r.error;
-   r=await db.from("results").insert(resultObjs); if(r.error)throw r.error;
+  if(supa){
+   let r=await supa.from("exams").insert(examObj); if(r.error)throw r.error;
+   r=await supa.from("results").insert(resultObjs); if(r.error)throw r.error;
   }else{
    exams.push({...examObj,id:crypto.randomUUID()});results.push(...resultObjs.map(x=>({...x,id:crypto.randomUUID()})));
    localSet("jawiil_exams",exams);localSet("jawiil_results",results);
@@ -146,7 +145,7 @@ $("financeForm").addEventListener("submit",async e=>{
  if(!s)return alert("Student ID lama helin.");
  const obj={transaction_id:$("finance_transaction_id").value.trim(),student_id:sid,student_name:s.full_name,fee_type:$("finance_fee_type").value.trim(),total_fee:Number($("finance_total_fee").value||0),amount_paid:Number($("finance_amount_paid").value||0),balance:Number($("finance_balance").value||0),payment_date:$("finance_payment_date").value,method:$("finance_method").value,receipt_no:$("finance_receipt_no").value.trim(),remarks:$("finance_remarks").value};
  try{
-  if(db){const {error}=await db.from("finance").insert(obj);if(error)throw error}
+  if(supa){const {error}=await supa.from("finance").insert(obj);if(error)throw error}
   else{finance.push({...obj,id:crypto.randomUUID()});localSet("jawiil_finance",finance)}
   await loadAll();alert("Payment-ka waa la keydiyey.");e.target.reset();$("finance_payment_date").value=new Date().toISOString().slice(0,10);
  }catch(err){console.error(err);alert("Finance kaydintiisu way fashilantay: "+err.message)}
