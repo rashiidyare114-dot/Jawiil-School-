@@ -50,18 +50,38 @@ function updateDashboard(){
 function renderStudents(q=""){
  q=(q||"").toLowerCase();
  const rows=students.filter(x=>(x.student_id+" "+x.full_name+" "+(x.phone||"")+" "+(x.grade||"")).toLowerCase().includes(q));
- $("studentRows").innerHTML=rows.map(x=>`<tr><td>${esc(x.student_id)}</td><td>${esc(x.full_name)}</td><td>${esc(x.level)}</td><td>${esc(x.grade)}</td><td>${esc(x.phone)}</td><td>${esc(x.academic_year)}</td></tr>`).join("");
+ $("studentRows").innerHTML=rows.map(x=>`<tr>
+ <td>${esc(x.student_id)}</td><td>${esc(x.full_name)}</td><td>${esc(x.level)}</td><td>${esc(x.grade)}</td><td>${esc(x.phone)}</td><td>${esc(x.academic_year)}</td>
+ <td><button class="danger" onclick="deleteStudent('${esc(x.student_id)}')">🗑 Delete</button></td>
+ </tr>`).join("");
 }
 function renderResults(q=""){
  q=(q||"").toLowerCase();
- const rows=results.filter(x=>(x.student_id+" "+(x.student_name||"")+" "+(x.exam_id||"")+" "+(x.subject||"")).toLowerCase().includes(q));
- $("resultRows").innerHTML=rows.map(x=>`<tr><td>${esc(x.student_id)}</td><td>${esc(x.student_name||"")}</td><td>${esc(x.exam_id)}</td><td>${esc(x.subject)}</td><td>${x.total_marks??""}</td><td>${x.marks??""}</td><td>${esc(x.grade)}</td><td>${esc(x.status)}</td><td>${esc(x.remarks)}</td></tr>`).join("");
- $("resultSummary").textContent=rows.length?`${rows.length} result(s) found`:"No results found";
+ const filtered=results.filter(x=>(x.student_id+" "+(x.student_name||"")+" "+(x.exam_id||"")+" "+(x.subject||"")).toLowerCase().includes(q));
+ const groups={};
+ filtered.forEach(x=>{
+   const key=String(x.student_id)+"||"+String(x.exam_id);
+   if(!groups[key]) groups[key]={student_id:x.student_id,student_name:x.student_name||"",exam_id:x.exam_id,items:{}};
+   groups[key].items[x.subject]={marks:x.marks,grade:x.grade,status:x.status};
+ });
+ const subjects=[...new Set(filtered.map(x=>x.subject).filter(Boolean))];
+ $("resultSummary").textContent=Object.keys(groups).length?`${Object.keys(groups).length} student/exam result(s) found`:"No results found";
+ if(!Object.keys(groups).length){$("resultsTableWrap").innerHTML="<p>No results found.</p>";return}
+ $("resultsTableWrap").innerHTML=`<table class="horizontal-results"><thead><tr>
+ <th>Student ID</th><th>Student</th><th>Exam</th>${subjects.map(s=>`<th>${esc(s)}</th>`).join("")}<th>Average</th><th>Overall</th><th>Action</th>
+ </tr></thead><tbody>${Object.values(groups).map(g=>{
+   const vals=subjects.map(sub=>g.items[sub]?.marks).filter(v=>v!==undefined&&v!==null).map(Number);
+   const avg=vals.length?(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1):"";
+   const overall=vals.length?(vals.every((m,i)=>m>=50)?"PASS":"FAIL"):"";
+   return `<tr><td>${esc(g.student_id)}</td><td>${esc(g.student_name)}</td><td>${esc(g.exam_id)}</td>`+
+     subjects.map(sub=>{const v=g.items[sub];return `<td>${v?`${esc(v.marks)}<br><small>${esc(v.grade||"")} · ${esc(v.status||"")}</small>`:"-"}</td>`}).join("")+
+     `<td>${avg}</td><td>${overall}</td><td><button class="danger" onclick="deleteExam('${esc(g.exam_id)}')">🗑 Delete</button></td></tr>`;
+ }).join("")}</tbody></table>`;
 }
 function renderFinance(q=""){
  q=(q||"").toLowerCase();
  const rows=finance.filter(x=>(x.student_id+" "+(x.student_name||"")+" "+(x.fee_type||"")).toLowerCase().includes(q));
- $("financeRows").innerHTML=rows.map(x=>`<tr><td>${esc(x.student_name||x.student_id)}</td><td>${esc(x.fee_type)}</td><td>${Number(x.total_fee||0).toFixed(2)}</td><td>${Number(x.amount_paid||0).toFixed(2)}</td><td>${Number(x.balance||0).toFixed(2)}</td><td>${esc(x.payment_date)}</td><td>${esc(x.method)}</td></tr>`).join("");
+ $("financeRows").innerHTML=rows.map(x=>`<tr><td>${esc(x.student_name||x.student_id)}</td><td>${esc(x.fee_type)}</td><td>${Number(x.total_fee||0).toFixed(2)}</td><td>${Number(x.amount_paid||0).toFixed(2)}</td><td>${Number(x.balance||0).toFixed(2)}</td><td>${esc(x.payment_date)}</td><td>${esc(x.method)}</td><td><button class="danger" onclick="deleteFinance('${esc(x.id||"")}')">🗑 Delete</button></td></tr>`).join("");
 }
 
 function studentById(id){return students.find(x=>String(x.student_id).trim()===String(id).trim())}
@@ -153,7 +173,91 @@ $("financeForm").addEventListener("submit",async e=>{
 $("financeSearchBtn").onclick=()=>renderFinance($("financeSearch").value);
 $("financeSearch").oninput=()=>renderFinance($("financeSearch").value);
 
-document.querySelectorAll(".nav").forEach(btn=>btn.onclick=()=>{document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));btn.classList.add("active");document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));$(btn.dataset.page).classList.add("active")});
+async function deleteStudent(id){
+ if(!confirm("Ma hubtaa inaad tirtirayso ardaygan iyo xogtiisa Exam/Results/Finance?"))return;
+ try{
+   if(supa){
+     let r=await supa.from("results").delete().eq("student_id",id); if(r.error)throw r.error;
+     r=await supa.from("exams").delete().eq("student_id",id); if(r.error)throw r.error;
+     r=await supa.from("finance").delete().eq("student_id",id); if(r.error)throw r.error;
+     r=await supa.from("students").delete().eq("student_id",id); if(r.error)throw r.error;
+   }else{
+     students=students.filter(x=>String(x.student_id)!==String(id));
+     exams=exams.filter(x=>String(x.student_id)!==String(id));
+     results=results.filter(x=>String(x.student_id)!==String(id));
+     finance=finance.filter(x=>String(x.student_id)!==String(id));
+     localSet("jawiil_students",students);localSet("jawiil_exams",exams);localSet("jawiil_results",results);localSet("jawiil_finance",finance);
+   }
+   await loadAll(); alert("Ardayga iyo xogtiisa waa la tirtiray.");
+ }catch(err){alert("Tirtiriddu way fashilantay: "+err.message)}
+}
+async function deleteExam(examId){
+ if(!confirm("Ma hubtaa inaad tirtirayso exam-kan iyo dhammaan maadooyinkiisa?"))return;
+ try{
+   if(supa){
+     let r=await supa.from("results").delete().eq("exam_id",examId);if(r.error)throw r.error;
+     r=await supa.from("exams").delete().eq("exam_id",examId);if(r.error)throw r.error;
+   }else{
+     exams=exams.filter(x=>String(x.exam_id)!==String(examId));
+     results=results.filter(x=>String(x.exam_id)!==String(examId));
+     localSet("jawiil_exams",exams);localSet("jawiil_results",results);
+   }
+   await loadAll(); alert("Exam-ka iyo natiijooyinkiisa waa la tirtiray.");
+ }catch(err){alert("Tirtiriddu way fashilantay: "+err.message)}
+}
+async function deleteFinance(id){
+ if(!id){alert("Record-kan ID ma laha.");return}
+ if(!confirm("Ma hubtaa inaad tirtirayso payment-kan?"))return;
+ try{
+   if(supa){const {error}=await supa.from("finance").delete().eq("id",id);if(error)throw error}
+   else{finance=finance.filter(x=>String(x.id)!==String(id));localSet("jawiil_finance",finance)}
+   await loadAll();alert("Payment-ka waa la tirtiray.");
+ }catch(err){alert("Tirtiriddu way fashilantay: "+err.message)}
+}
+
+document.querySelectorAll(".nav").forEach(btn=>btn.onclick=()=>{async function deleteStudent(id){
+ if(!confirm("Ma hubtaa inaad tirtirayso ardaygan iyo xogtiisa Exam/Results/Finance?"))return;
+ try{
+   if(supa){
+     let r=await supa.from("results").delete().eq("student_id",id); if(r.error)throw r.error;
+     r=await supa.from("exams").delete().eq("student_id",id); if(r.error)throw r.error;
+     r=await supa.from("finance").delete().eq("student_id",id); if(r.error)throw r.error;
+     r=await supa.from("students").delete().eq("student_id",id); if(r.error)throw r.error;
+   }else{
+     students=students.filter(x=>String(x.student_id)!==String(id));
+     exams=exams.filter(x=>String(x.student_id)!==String(id));
+     results=results.filter(x=>String(x.student_id)!==String(id));
+     finance=finance.filter(x=>String(x.student_id)!==String(id));
+     localSet("jawiil_students",students);localSet("jawiil_exams",exams);localSet("jawiil_results",results);localSet("jawiil_finance",finance);
+   }
+   await loadAll(); alert("Ardayga iyo xogtiisa waa la tirtiray.");
+ }catch(err){alert("Tirtiriddu way fashilantay: "+err.message)}
+}
+async function deleteExam(examId){
+ if(!confirm("Ma hubtaa inaad tirtirayso exam-kan iyo dhammaan maadooyinkiisa?"))return;
+ try{
+   if(supa){
+     let r=await supa.from("results").delete().eq("exam_id",examId);if(r.error)throw r.error;
+     r=await supa.from("exams").delete().eq("exam_id",examId);if(r.error)throw r.error;
+   }else{
+     exams=exams.filter(x=>String(x.exam_id)!==String(examId));
+     results=results.filter(x=>String(x.exam_id)!==String(examId));
+     localSet("jawiil_exams",exams);localSet("jawiil_results",results);
+   }
+   await loadAll(); alert("Exam-ka iyo natiijooyinkiisa waa la tirtiray.");
+ }catch(err){alert("Tirtiriddu way fashilantay: "+err.message)}
+}
+async function deleteFinance(id){
+ if(!id){alert("Record-kan ID ma laha.");return}
+ if(!confirm("Ma hubtaa inaad tirtirayso payment-kan?"))return;
+ try{
+   if(supa){const {error}=await supa.from("finance").delete().eq("id",id);if(error)throw error}
+   else{finance=finance.filter(x=>String(x.id)!==String(id));localSet("jawiil_finance",finance)}
+   await loadAll();alert("Payment-ka waa la tirtiray.");
+ }catch(err){alert("Tirtiriddu way fashilantay: "+err.message)}
+}
+
+document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));btn.classList.add("active");document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));$(btn.dataset.page).classList.add("active")});
 
 $("globalSearchBtn").onclick=()=>{
  const q=$("globalSearch").value.toLowerCase(), rows=students.filter(s=>(s.student_id+" "+s.full_name+" "+(s.phone||"")).toLowerCase().includes(q));
