@@ -79,30 +79,25 @@
       <div class="panel"><div class="toolbar"><h3>Saved Exam Entries</h3><input id="examSearch" placeholder="🔎 Search student, exam, subject"></div>
         <div class="tablewrap"><table><thead><tr><th>Exam ID</th><th>Student</th><th>Name</th><th>Level</th><th>Class</th><th>Subject</th><th>Year</th><th>Marks</th><th>Grade</th><th>Status</th><th>Action</th></tr></thead><tbody id="examRows"></tbody></table></div></div>
     </section>
-
     <section id="results" class="page">
       <h2>📊 Exam Results</h2>
       <div class="panel">
-        <p class="hint"><b>Natiijooyinka kaliya (OUTPUT).</b> Wax xog ah laguma gelinayo halkan. Dhammaan natiijooyinka waxaa laga soo qaadayaa <b>Exam Entry</b>.</p>
+        <p class="hint"><b>Natiijooyinka kaliya (OUTPUT).</b> Halkan xog cusub laguma gelinayo. Natiijooyinka waxaa si toos ah looga akhriyaa <b>Exam Entry</b>.</p>
+        <div class="search-box">
+          <input id="resultStudentSearch" placeholder="Student ID ama magaca">
+          <input id="resultExamSearch" placeholder="Exam ID ama Exam Name">
+          <button id="resultSearchBtn" class="primary" type="button">🔎 Search</button>
+          <button id="resultClearBtn" class="secondary" type="button">Clear</button>
+        </div>
       </div>
       <div class="panel">
-        <div class="toolbar">
-          <h3>Student Exam Results</h3>
-          <input id="resultSearch" placeholder="🔎 Search Student ID, name, exam or subject">
-        </div>
+        <div class="toolbar"><h3>Student Exam Results</h3><span id="resultCount" class="hint"></span></div>
         <div class="tablewrap">
           <table>
             <thead>
               <tr>
-                <th>Student ID</th>
-                <th>Student</th>
-                <th>Exam</th>
-                <th>Subject</th>
-                <th>Total</th>
-                <th>Marks</th>
-                <th>Grade</th>
-                <th>Status</th>
-                <th>Remarks</th>
+                <th>Student ID</th><th>Student</th><th>Exam</th><th>Subject</th>
+                <th>Total</th><th>Marks</th><th>Grade</th><th>Status</th><th>Remarks</th>
               </tr>
             </thead>
             <tbody id="resultRows"></tbody>
