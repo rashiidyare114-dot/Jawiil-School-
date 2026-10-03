@@ -94,7 +94,14 @@
       <h2>📊 Exam Results</h2>
       <div class="panel"><p><b>OUTPUT KELIYA.</b> Halkan wax natiijo ah laguma gelinayo. Natiijooyinka waxay si toos ah uga yimaadaan Exam Entry.</p></div>
       <div class="panel">
-        <div class="toolbar"><h3>Results Search</h3><div class="searchrow"><input id="resultSearch" placeholder="Student ID, name, Exam ID, subject"><button id="resultSearchBtn" class="primary">Search</button></div></div>
+        <div class="toolbar"><h3>Results Search & Filter</h3><div class="searchrow">
+          <input id="resultSearch" placeholder="Student ID, name, Exam ID">
+          <select id="resultLevelFilter"><option value="">All Levels</option></select>
+          <select id="resultGradeFilter"><option value="">All Classes</option></select>
+          <select id="resultExamFilter"><option value="">All Exams</option></select>
+          <button id="resultSearchBtn" class="primary">Filter</button>
+          <button id="resultPrintBtn" class="secondary">🖨 Print</button>
+        </div></div>
         <div id="resultSummary" class="summary"></div>
         <div class="tablewrap" id="resultsTableWrap"></div>
       </div>

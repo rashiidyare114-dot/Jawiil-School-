@@ -38,7 +38,7 @@ async function loadAll(){
   renderAll();
 }
 
-function renderAll(){renderStudents();renderResults();renderFinance();updateDashboard()}
+function renderAll(){setupResultFilters();renderStudents();renderResults();renderFinance();updateDashboard()}
 
 function updateDashboard(){
  $("countStudents").textContent=students.length;
@@ -55,33 +55,52 @@ function renderStudents(q=""){
  <td><button class="danger" onclick="deleteStudent('${esc(x.student_id)}')">🗑 Delete</button></td>
  </tr>`).join("");
 }
+function setupResultFilters(){
+ const levels=[...new Set(exams.map(x=>x.level).filter(Boolean))].sort();
+ const grades=[...new Set(exams.map(x=>x.grade).filter(Boolean))].sort();
+ const examNames=[...new Set(exams.map(x=>x.exam_name).filter(Boolean))].sort();
+ const fill=(id,items,label)=>{const el=$(id); if(!el)return; const old=el.value; el.innerHTML=`<option value="">${label}</option>`+items.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join(""); if(items.includes(old))el.value=old;};
+ fill("resultLevelFilter",levels,"All Levels");
+ fill("resultGradeFilter",grades,"All Classes");
+ fill("resultExamFilter",examNames,"All Exams");
+}
 function renderResults(q=""){
- q=(q||"").toLowerCase();
- const filtered=results.filter(x=>(x.student_id+" "+(x.student_name||"")+" "+(x.exam_id||"")+" "+(x.subject||"")).toLowerCase().includes(q));
+ q=(q||"").toLowerCase().trim();
+ const levelFilter=$("resultLevelFilter")?.value||"";
+ const gradeFilter=$("resultGradeFilter")?.value||"";
+ const examFilter=$("resultExamFilter")?.value||"";
+ const filtered=results.filter(x=>{
+   const ex=exams.find(e=>String(e.exam_id)===String(x.exam_id))||{};
+   const text=(x.student_id+" "+(x.student_name||"")+" "+(x.exam_id||"")+" "+(x.subject||"")+" "+(ex.exam_name||"")+" "+(ex.level||"")+" "+(ex.grade||"")).toLowerCase();
+   return (!q||text.includes(q)) && (!levelFilter||String(ex.level||"")===levelFilter) && (!gradeFilter||String(ex.grade||"")===gradeFilter) && (!examFilter||String(ex.exam_name||"")===examFilter);
+ });
  const groups={};
  filtered.forEach(x=>{
+   const ex=exams.find(e=>String(e.exam_id)===String(x.exam_id))||{};
    const key=String(x.student_id)+"||"+String(x.exam_id);
-   if(!groups[key]) groups[key]={student_id:x.student_id,student_name:x.student_name||"",exam_id:x.exam_id,items:{}};
+   if(!groups[key]) groups[key]={student_id:x.student_id,student_name:x.student_name||"",level:ex.level||"",grade:ex.grade||"",exam_id:x.exam_id,exam_name:ex.exam_name||"",items:{}};
    groups[key].items[x.subject]={marks:x.marks,grade:x.grade,status:x.status};
  });
  const subjects=[...new Set(filtered.map(x=>x.subject).filter(Boolean))];
- $("resultSummary").textContent=Object.keys(groups).length?`${Object.keys(groups).length} student/exam result(s) found`:"No results found";
- if(!Object.keys(groups).length){$("resultsTableWrap").innerHTML="<p>No results found.</p>";return}
+ const groupValues=Object.values(groups);
+ $("resultSummary").textContent=groupValues.length?`${groupValues.length} student/exam result(s) found`:"No results found";
+ if(!groupValues.length){$("resultsTableWrap").innerHTML="<p>No results found.</p>";return}
  $("resultsTableWrap").innerHTML=`<table class="horizontal-results"><thead><tr>
- <th>Student ID</th><th>Student</th><th>Exam</th>${subjects.map(s=>`<th>${esc(s)}</th>`).join("")}<th>Average</th><th>Overall</th><th>Action</th>
- </tr></thead><tbody>${Object.values(groups).map(g=>{
+ <th>Student ID</th><th>Student</th><th>Level</th><th>Class/Grade</th><th>Exam Name</th><th>Exam ID</th>${subjects.map(s=>`<th>${esc(s)}</th>`).join("")}<th>Average</th><th>Overall</th><th>Action</th>
+ </tr></thead><tbody>${groupValues.map(g=>{
    const vals=subjects.map(sub=>g.items[sub]?.marks).filter(v=>v!==undefined&&v!==null).map(Number);
    const avg=vals.length?(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1):"";
-   const overall=vals.length?(vals.every((m,i)=>m>=50)?"PASS":"FAIL"):"";
-   return `<tr><td>${esc(g.student_id)}</td><td>${esc(g.student_name)}</td><td>${esc(g.exam_id)}</td>`+
-     subjects.map(sub=>{const v=g.items[sub];return `<td>${v?`${esc(v.marks)}<br><small>${esc(v.grade||"")} · ${esc(v.status||"")}</small>`:"-"}</td>`}).join("")+
+   const overall=vals.length?(vals.every(m=>m>=50)?"PASS":"FAIL"):"";
+   return `<tr><td>${esc(g.student_id)}</td><td>${esc(g.student_name)}</td><td>${esc(g.level)}</td><td>${esc(g.grade)}</td><td>${esc(g.exam_name)}</td><td>${esc(g.exam_id)}</td>`+
+     subjects.map(sub=>{const v=g.items[sub];return `<td>${v?`${esc(v.marks)}<br><small>${esc(v.grade||"")} · ${esc(v.status||"")}</small>`:"-"}</td>`}).join("")+ 
      `<td>${avg}</td><td>${overall}</td><td><button class="danger" onclick="deleteExam('${esc(g.exam_id)}')">🗑 Delete</button></td></tr>`;
  }).join("")}</tbody></table>`;
 }
+
 function renderFinance(q=""){
  q=(q||"").toLowerCase();
  const rows=finance.filter(x=>(x.student_id+" "+(x.student_name||"")+" "+(x.fee_type||"")).toLowerCase().includes(q));
- $("financeRows").innerHTML=rows.map(x=>`<tr><td>${esc(x.student_name||x.student_id)}</td><td>${esc(x.fee_type)}</td><td>${Number(x.total_fee||0).toFixed(2)}</td><td>${Number(x.amount_paid||0).toFixed(2)}</td><td>${Number(x.balance||0).toFixed(2)}</td><td>${esc(x.payment_date)}</td><td>${esc(x.method)}</td><td><button class="danger" onclick="deleteFinance('${esc(x.id||"")}')">🗑 Delete</button></td></tr>`).join("");
+ $("financeRows").innerHTML=rows.map(x=>`<tr><td>${esc(x.student_name||x.student_id)}</td><td>${esc(x.fee_type)}</td><td>${Number(x.total_fee||0).toFixed(2)}</td><td>${Number(x.amount_paid||0).toFixed(2)}</td><td>${Number(x.balance||0).toFixed(2)}</td><td>${esc(x.payment_date)}</td><td>${esc(x.payment_method)}</td><td><button class="danger" onclick="deleteFinance('${esc(x.id||"")}')">🗑 Delete</button></td></tr>`).join("");
 }
 
 function studentById(id){return students.find(x=>String(x.student_id).trim()===String(id).trim())}
@@ -156,6 +175,8 @@ $("examForm").addEventListener("submit",async e=>{
 
 $("resultSearchBtn").onclick=()=>renderResults($("resultSearch").value);
 $("resultSearch").oninput=()=>renderResults($("resultSearch").value);
+["resultLevelFilter","resultGradeFilter","resultExamFilter"].forEach(id=>$(id).addEventListener("change",()=>renderResults($("resultSearch").value)));
+$("resultPrintBtn").onclick=()=>{const area=$("resultsTableWrap").innerHTML;if(!area||area.includes("No results found")){alert("Marka hore soo saar natiijooyinka aad rabto inaad print-gareyso.");return;} const w=window.open("","_blank"); if(!w){alert("Browser-ku wuxuu xannibay Print window. Ogolow pop-up kadib mar kale taabo Print.");return;} w.document.write(`<!doctype html><html><head><title>JAWIIL Exam Results</title><style>body{font-family:Arial;padding:20px}h1{color:#173f67}table{width:100%;border-collapse:collapse;min-width:900px}th,td{border:1px solid #999;padding:7px;text-align:left;white-space:nowrap}th{background:#124d80;color:white}small{color:#555}@media print{body{padding:0}button{display:none}}</style></head><body><h1>JAWIIL Primary and Secondary School</h1><h2>Exam Results</h2>${area}</body></html>`);w.document.close();w.focus();setTimeout(()=>w.print(),300);};
 
 $("finance_student_id").addEventListener("input",()=>{const s=studentById($("finance_student_id").value);setStudentInfo("finance",s)});
 $("finance_total_fee").oninput=$("finance_amount_paid").oninput=()=>{$("finance_balance").value=(Number($("finance_total_fee").value||0)-Number($("finance_amount_paid").value||0)).toFixed(2)};
@@ -163,7 +184,7 @@ $("financeForm").addEventListener("submit",async e=>{
  e.preventDefault();
  const sid=$("finance_student_id").value.trim(),s=studentById(sid);
  if(!s)return alert("Student ID lama helin.");
- const obj={transaction_id:$("finance_transaction_id").value.trim(),student_id:sid,student_name:s.full_name,fee_type:$("finance_fee_type").value.trim(),total_fee:Number($("finance_total_fee").value||0),amount_paid:Number($("finance_amount_paid").value||0),balance:Number($("finance_balance").value||0),payment_date:$("finance_payment_date").value,method:$("finance_method").value,receipt_no:$("finance_receipt_no").value.trim(),remarks:$("finance_remarks").value};
+ const obj={transaction_id:$("finance_transaction_id").value.trim(),student_id:sid,student_name:s.full_name,fee_type:$("finance_fee_type").value.trim(),total_fee:Number($("finance_total_fee").value||0),amount_paid:Number($("finance_amount_paid").value||0),balance:Number($("finance_balance").value||0),payment_date:$("finance_payment_date").value,payment_method:$("finance_method").value,receipt_no:$("finance_receipt_no").value.trim(),remarks:$("finance_remarks").value};
  try{
   if(supa){const {error}=await supa.from("finance").insert(obj);if(error)throw error}
   else{finance.push({...obj,id:crypto.randomUUID()});localSet("jawiil_finance",finance)}
