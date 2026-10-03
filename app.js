@@ -28,10 +28,30 @@ function loadExamSubjects(level){const list=subjects[level]||[];if(!list.length)
  $("examSubjects").style.display="block";$('examMessage').textContent=`${list.length} maado ayaa diyaar ah. Geli marks-ka dhammaan maadooyinka, kadib Save Complete Exam.`}
 
 saveExamBundle.onclick=async()=>{const s=findStudent(exam_student_id.value),eid=exam_id.value.trim();if(!s||!eid||!exam_name.value.trim()){alert("Student ID, Exam ID iyo Exam Name waa required.");return}const rows=[...document.querySelectorAll("#examSubjectRows tr")];if(!rows.length){alert("Maadooyin lama helin.");return}if(rows.some(r=>r.querySelector(".exam-marks").value==="")){alert("Fadlan marks geli dhammaan maadooyinka.");return}
- const examsData=rows.map(r=>({exam_id:eid,exam_name:exam_name.value.trim(),student_id:s.student_id,student_name:s.full_name,level:s.level,grade:s.grade,subject:r.dataset.subject,academic_year:exam_year.value,semester:semester.value,exam_date:exam_date.value||null,total_marks:+r.querySelector(".exam-total").value,pass_mark:+r.querySelector(".exam-pass").value}));
+ const examsData=[{
+  exam_id:eid,
+  exam_name:exam_name.value.trim(),
+  student_id:s.student_id,
+  student_name:s.full_name,
+  level:s.level,
+  grade:s.grade,
+  subject:"All Subjects",
+  academic_year:exam_year.value,
+  semester:semester.value,
+  exam_date:exam_date.value||null,
+  total_marks:100,
+  pass_mark:50
+}];
  const resultsData=rows.map(r=>({student_id:s.student_id,student_name:s.full_name,exam_id:eid,subject:r.dataset.subject,total_marks:+r.querySelector(".exam-total").value,marks:+r.querySelector(".exam-marks").value,grade:r.querySelector(".exam-grade").value,status:r.querySelector(".exam-status").value,remarks:r.querySelector(".exam-remarks").value}));
  if(db){await db.from("exams").delete().eq("exam_id",eid).eq("student_id",s.student_id);await db.from("results").delete().eq("exam_id",eid).eq("student_id",s.student_id)}else{local.exams=local.exams.filter(x=>!(String(x.exam_id).toLowerCase()===eid.toLowerCase()&&String(x.student_id).toLowerCase()===String(s.student_id).toLowerCase()));local.results=local.results.filter(x=>!(String(x.exam_id).toLowerCase()===eid.toLowerCase()&&String(x.student_id).toLowerCase()===String(s.student_id).toLowerCase()))}
- const ok1=await insertMany("exams",examsData,local.exams,"jawiil_exams");const ok2=ok1&&await insertMany("results",resultsData,local.results,"jawiil_results");if(ok2){alert("Exam iyo dhammaan natiijooyinkiisa waa la keydiyey.");examForm.reset();$("examSubjects").style.display="none";await loadAll()}};
+ const ok1=await insertMany("exams",examsData,local.exams,"jawiil_exams");
+const ok2=ok1&&await insertMany("results",resultsData,local.results,"jawiil_results");
+if(ok2){
+  alert("Exam iyo dhammaan maadooyinkiisa waa la keydiyey.");
+  examForm.reset();
+  $("examSubjects").style.display="none";
+  await loadAll();
+}};
 
 function renderFinance(){financeRows.innerHTML=local.finance.map((x,i)=>`<tr><td>${escapeHtml(x.transaction_id)}</td><td>${escapeHtml(x.student_name||x.student_id)}</td><td>${escapeHtml(x.fee_type)}</td><td>$${x.total_fee}</td><td>$${x.amount_paid}</td><td>$${x.balance}</td><td>${escapeHtml(x.payment_date||"")}</td><td><button class="delete" onclick="delFinance(${x.id??i})">Delete</button></td></tr>`).join("")}
 async function delStudent(id){if(confirm("Delete student?"))await remove("students",id,local.students,"jawiil_students")}async function delExam(id){if(confirm("Delete exam?"))await remove("exams",id,local.exams,"jawiil_exams")}async function delFinance(id){if(confirm("Delete payment?"))await remove("finance",id,local.finance,"jawiil_finance")}
