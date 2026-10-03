@@ -121,3 +121,42 @@ with check (public.my_role()='treasurer');
 -- There are intentionally NO student policies for finance.
 -- There are intentionally NO treasurer policies for exams/results.
 -- There are intentionally NO exam-officer policies for finance.
+
+
+-- ============================================================
+-- STUDENT ID-ONLY RESULTS LOGIN
+-- Students can intentionally view results using only their Student ID.
+-- This function exposes ONLY student profile + exam + result data.
+-- It does NOT expose finance or other students' records.
+-- ============================================================
+create or replace function public.get_student_results(p_student_id text)
+returns jsonb
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select jsonb_build_object(
+    'student',
+      (select to_jsonb(s)
+       from public.students s
+       where trim(s.student_id) = trim(p_student_id)
+       limit 1),
+    'exams',
+      coalesce(
+        (select jsonb_agg(to_jsonb(e) order by e.created_at desc)
+         from public.exams e
+         where trim(e.student_id) = trim(p_student_id)),
+        '[]'::jsonb
+      ),
+    'results',
+      coalesce(
+        (select jsonb_agg(to_jsonb(r) order by r.created_at desc)
+         from public.results r
+         where trim(r.student_id) = trim(p_student_id)),
+        '[]'::jsonb
+      )
+  );
+$$;
+
+grant execute on function public.get_student_results(text) to anon, authenticated;

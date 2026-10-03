@@ -27,10 +27,13 @@
   <div class="auth-card">
     <h1>JAWIIL SCHOOL</h1>
     <p>School Management System</p>
-    <input id="loginEmail" type="email" placeholder="Email" autocomplete="username">
+    <input id="loginEmail" type="email" placeholder="Staff Email" autocomplete="username">
     <input id="loginPassword" type="password" placeholder="Password" autocomplete="current-password">
-    <button id="loginBtn" class="auth-primary">🔐 Login</button>
+    <button id="loginBtn" class="auth-primary">🔐 Staff Login</button>
     <button id="forgotBtn" class="auth-link">Forgot Password?</button>
+    <div style="display:flex;align-items:center;gap:10px;margin:16px 0;color:#888"><span style="flex:1;height:1px;background:#ddd"></span><span>OR</span><span style="flex:1;height:1px;background:#ddd"></span></div>
+    <input id="studentLoginId" type="text" placeholder="Student ID">
+    <button id="studentLoginBtn" class="auth-primary">🎓 View My Results</button>
     <div id="loginMsg" class="auth-msg"></div>
   </div>
 </div>
@@ -195,6 +198,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
+<script src="app.js"></script>
 <script>
 (async function(){
   const loginScreen=document.getElementById("loginScreen");
@@ -281,6 +285,24 @@
     try{await loadProfile(data.session)}catch(e){await db.auth.signOut();showLogin(e.message)}
   };
 
+  document.getElementById("studentLoginBtn").onclick=async()=>{
+    loginMsg.textContent="Searching student results...";
+    const sid=document.getElementById("studentLoginId").value.trim();
+    if(!sid){loginMsg.textContent="Student ID geli.";return}
+    try{
+      if(!window.startStudentMode) throw new Error("System-ka wali ma diyaar garoobin. Fadlan mar kale isku day.");
+      await window.startStudentMode(sid);
+      applyRoleVisibility("student");
+    }catch(e){
+      loginMsg.textContent=e.message||"Student ID lama helin.";
+      return;
+    }
+  };
+
+  document.getElementById("studentLoginId").onkeydown=e=>{
+    if(e.key==="Enter")document.getElementById("studentLoginBtn").click();
+  };
+
   document.getElementById("loginPassword").onkeydown=e=>{
     if(e.key==="Enter")document.getElementById("loginBtn").click();
   };
@@ -320,6 +342,5 @@
   await checkSession();
 })();
 </script>
-<script src="app.js"></script>
 </body>
 </html>

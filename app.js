@@ -55,14 +55,15 @@ async function loadAll(){
     ]);
     students=responses[0].data||[];finance=responses[1].data||[];exams=[];results=[];
   }else if(r==="student"){
-    const sid=currentProfile.student_id;
-    responses=await Promise.all([
-      supa.from("students").select("*").eq("student_id",sid).maybeSingle(),
-      supa.from("results").select("*").eq("student_id",sid).order("created_at",{ascending:false})
-    ]);
-    students=responses[0].data?[responses[0].data]:[];
-    results=responses[1].data||[];
-    exams=[];
+    const sid=String(currentProfile.student_id||"").trim();
+    if(!sid) throw new Error("Student ID lama helin.");
+    const {data,error}=await supa.rpc("get_student_results", {p_student_id:sid});
+    if(error) throw error;
+    const payload=data||{};
+    if(!payload.student) throw new Error("Student ID-ga lama helin.");
+    students=[payload.student];
+    exams=payload.exams||[];
+    results=payload.results||[];
     finance=[];
   }else{
     throw new Error("Role lama qeexin.");
@@ -72,6 +73,22 @@ async function loadAll(){
   if(err) throw err.error;
 
   renderAll();
+}
+
+async function startStudentMode(studentId){
+  const sid=String(studentId||"").trim();
+  if(!sid) throw new Error("Student ID geli.");
+  if(!supa) await initDb();
+  currentProfile={role:"student",student_id:sid,email:"",full_name:"Student"};
+  window.currentProfile=currentProfile;
+  if(typeof window.applyRoleVisibility==="function") window.applyRoleVisibility("student");
+  if($("userEmail"))$("userEmail").textContent="";
+  if($("userRole"))$("userRole").textContent="STUDENT";
+  if($("loginScreen"))$("loginScreen").classList.add("hidden");
+  if($("resetScreen"))$("resetScreen").classList.add("hidden");
+  if($("appShell"))$("appShell").style.display="flex";
+  await loadAll();
+  if(typeof window.goToRoleStart==="function") window.goToRoleStart("student");
 }
 
 function renderAll(){
@@ -211,7 +228,7 @@ function renderResults(q=""){
   if(!groupValues.length){box.innerHTML="<p>No results found.</p>";return;}
 
   box.innerHTML=`<table class="horizontal-results"><thead><tr>
-    <th>Student ID</th><th>Student</th>${isRole("admin","exam_officer")?"<th>Level</th><th>Class/Grade</th>":""}<th>Exam Name</th><th>Exam ID</th>
+    <th>Student ID</th><th>Student</th><th>Level</th><th>Class/Grade</th><th>Exam Name</th><th>Exam ID</th>
     ${subjects.map(s=>`<th>${esc(s)}</th>`).join("")}<th>Average</th><th>Overall</th>${isRole("admin","exam_officer")?"<th>Action</th>":""}
   </tr></thead><tbody>${groupValues.map(g=>{
     const vals=subjects.map(sub=>g.items[sub]?.marks).filter(v=>v!==undefined&&v!==null).map(Number);
@@ -219,7 +236,7 @@ function renderResults(q=""){
     const overall=vals.length?(vals.every(m=>m>=50)?"PASS":"FAIL"):"";
     return `<tr>
       <td>${esc(g.student_id)}</td><td>${esc(g.student_name)}</td>
-      ${isRole("admin","exam_officer")?`<td>${esc(g.level)}</td><td>${esc(g.grade)}</td>`:""}
+      <td>${esc(g.level)}</td><td>${esc(g.grade)}</td>
       <td>${esc(g.exam_name)}</td><td>${esc(g.exam_id)}</td>
       ${subjects.map(sub=>{const v=g.items[sub];return `<td>${v?`${esc(v.marks)}<br><small>${esc(v.grade||"")} · ${esc(v.status||"")}</small>`:"-"}</td>`}).join("")}
       <td>${avg}</td><td>${overall}</td>
@@ -459,6 +476,7 @@ async function saveProfile(){
 
 window.initDb=initDb;
 window.loadAll=loadAll;
+window.startStudentMode=startStudentMode;
 window.applyRoleDashboard=applyRoleDashboard;
 window.goToRoleStart=goToRoleStart;
 window.deleteStudent=deleteStudent;
