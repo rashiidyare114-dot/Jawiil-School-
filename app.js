@@ -11,74 +11,65 @@ const GRADES={
   Secondary:["Form 1","Form 2","Form 3","Form 4"]
 };
 
-let supa=null, students=[], exams=[], results=[], finance=[], profiles=[];
-let currentProfile=window.currentProfile||null;
+let supa=null;
+let students=[],exams=[],results=[],finance=[],profiles=[];
+let currentProfile=null;
 
-function esc(v){
-  return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
-}
-function gradeOf(n){n=Number(n)||0;return n>=90?"A+":n>=80?"A":n>=70?"B":n>=60?"C":n>=50?"D":"F";}
-function subjectsFor(level){return SUBJECTS[level]||[];}
-function localGet(k){try{return JSON.parse(localStorage.getItem(k)||"[]")}catch{return[]}}
-function localSet(k,v){localStorage.setItem(k,JSON.stringify(v));}
-function role(){return currentProfile?.role||document.body.dataset.role||"";}
-function isRole(...r){return r.includes(role());}
+const esc=v=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+const gradeOf=n=>{n=Number(n)||0;return n>=90?"A+":n>=80?"A":n>=70?"B":n>=60?"C":n>=50?"D":"F"};
+const subjectsFor=level=>SUBJECTS[level]||[];
+const role=()=>currentProfile?.role||"";
+const isRole=(...r)=>r.includes(role());
 
 async function initDb(){
-  if(typeof db!=="undefined") supa=db;
-  else if(typeof window.supabase!=="undefined" && typeof SUPABASE_URL!=="undefined" && typeof SUPABASE_ANON_KEY!=="undefined")
-    supa=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-  $("connection").textContent=supa?"Database: Connected":"Database: Local mode";
-  $("connection").className="connection "+(supa?"ok":"error");
+  supa=window.supa||((typeof db!=="undefined")?db:null);
+  if(!supa) throw new Error("Supabase connection lama helin.");
+  const c=$("connection");
+  if(c){c.textContent="Database: Connected";c.className="connection ok";}
 }
 
 async function loadAll(){
-  if(!supa){
-    students=localGet("jawiil_students"); exams=localGet("jawiil_exams"); results=localGet("jawiil_results"); finance=localGet("jawiil_finance");
-    renderAll(); return;
-  }
-
+  if(!supa) return;
   const r=role();
-  let requests=[];
+  let responses;
 
   if(r==="admin"){
-    requests=[
+    responses=await Promise.all([
       supa.from("students").select("*").order("created_at",{ascending:false}),
       supa.from("exams").select("*").order("created_at",{ascending:false}),
       supa.from("results").select("*").order("created_at",{ascending:false}),
       supa.from("finance").select("*").order("created_at",{ascending:false})
-    ];
+    ]);
+    students=responses[0].data||[];exams=responses[1].data||[];results=responses[2].data||[];finance=responses[3].data||[];
   }else if(r==="exam_officer"){
-    requests=[
+    responses=await Promise.all([
       supa.from("students").select("*").order("created_at",{ascending:false}),
       supa.from("exams").select("*").order("created_at",{ascending:false}),
       supa.from("results").select("*").order("created_at",{ascending:false})
-    ];
+    ]);
+    students=responses[0].data||[];exams=responses[1].data||[];results=responses[2].data||[];finance=[];
   }else if(r==="treasurer"){
-    requests=[
+    responses=await Promise.all([
       supa.from("students").select("*").order("created_at",{ascending:false}),
       supa.from("finance").select("*").order("created_at",{ascending:false})
-    ];
+    ]);
+    students=responses[0].data||[];finance=responses[1].data||[];exams=[];results=[];
   }else if(r==="student"){
-    const sid=currentProfile?.student_id;
-    requests=[
-      supa.from("students").select("*").eq("student_id",sid||""),
-      supa.from("exams").select("*").eq("student_id",sid||"").order("created_at",{ascending:false}),
-      supa.from("results").select("*").eq("student_id",sid||"").order("created_at",{ascending:false})
-    ];
+    const sid=currentProfile.student_id;
+    responses=await Promise.all([
+      supa.from("students").select("*").eq("student_id",sid).maybeSingle(),
+      supa.from("results").select("*").eq("student_id",sid).order("created_at",{ascending:false})
+    ]);
+    students=responses[0].data?[responses[0].data]:[];
+    results=responses[1].data||[];
+    exams=[];
+    finance=[];
   }else{
-    throw new Error("User role lama qeexin.");
+    throw new Error("Role lama qeexin.");
   }
 
-  const response=await Promise.all(requests);
-  const err=response.find(x=>x.error);
+  const err=responses.find(x=>x.error);
   if(err) throw err.error;
-
-  students=[]; exams=[]; results=[]; finance=[];
-  if(r==="admin"){students=response[0].data||[];exams=response[1].data||[];results=response[2].data||[];finance=response[3].data||[];}
-  if(r==="exam_officer"){students=response[0].data||[];exams=response[1].data||[];results=response[2].data||[];}
-  if(r==="treasurer"){students=response[0].data||[];finance=response[1].data||[];}
-  if(r==="student"){students=response[0].data||[];exams=response[1].data||[];results=response[2].data||[];}
 
   renderAll();
 }
@@ -92,15 +83,66 @@ function renderAll(){
   if(isRole("admin")) loadProfiles().catch(console.error);
 }
 
+function applyRoleDashboard(p){
+  currentProfile=p;
+  const roleName=p.role;
+  const cards=$("dashboardCards");
+  const note=$("dashboardNote");
+  const search=$("dashboardSearchPanel");
+  if(!cards||!note)return;
+
+  if(roleName==="admin"){
+    note.textContent="Admin: waxaad maamuli kartaa dhammaan system-ka.";
+    cards.innerHTML=`
+      <div class="card"><b id="countStudents">0</b><span>Students</span></div>
+      <div class="card"><b id="countExams">0</b><span>Exam Entries</span></div>
+      <div class="card"><b id="countResults">0</b><span>Results</span></div>
+      <div class="card"><b id="totalPaid">0.00</b><span>Total Paid</span></div>`;
+    search.style.display="";
+  }else if(roleName==="exam_officer"){
+    note.textContent="Exam Officer: waxaad arki kartaa oo maamuli kartaa xogta la xiriirta Exam-ka.";
+    cards.innerHTML=`
+      <div class="card"><b id="countExams">0</b><span>Exam Entries</span></div>
+      <div class="card"><b id="countResults">0</b><span>Results</span></div>`;
+    search.style.display="";
+  }else if(roleName==="treasurer"){
+    note.textContent="Treasurer: waxaad arki kartaa oo maamuli kartaa Finance oo keliya.";
+    cards.innerHTML=`
+      <div class="card"><b id="financeCount">0</b><span>Payments</span></div>
+      <div class="card"><b id="totalPaid">0.00</b><span>Total Paid</span></div>`;
+    search.style.display="";
+  }else{
+    // Student has NO dashboard at all.
+    search.style.display="none";
+  }
+}
+
 function updateDashboard(){
-  $("countStudents").textContent=students.length;
-  $("countExams").textContent=exams.length;
-  $("countResults").textContent=results.length;
-  $("totalPaid").textContent=(finance.reduce((a,x)=>a+Number(x.amount_paid||0),0)).toFixed(2);
+  if($("countStudents"))$("countStudents").textContent=students.length;
+  if($("countExams"))$("countExams").textContent=exams.length;
+  if($("countResults"))$("countResults").textContent=results.length;
+  if($("financeCount"))$("financeCount").textContent=finance.length;
+  if($("totalPaid"))$("totalPaid").textContent=finance.reduce((a,x)=>a+Number(x.amount_paid||0),0).toFixed(2);
+}
+
+function goToRoleStart(r){
+  showPage(r==="student"?"results":"dashboard");
+}
+
+function showPage(id){
+  const page=$(id);
+  if(!page)return;
+  const allowed=(page.dataset.pageRoles||"").split(",");
+  if(!allowed.includes(role()))return;
+  document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));
+  page.classList.add("active");
+  document.querySelectorAll(".nav[data-page]").forEach(x=>x.classList.remove("active"));
+  const nav=document.querySelector(`.nav[data-page="${id}"]`);
+  if(nav)nav.classList.add("active");
 }
 
 function renderStudents(q=""){
-  const box=$("studentRows"); if(!box)return;
+  const box=$("studentRows");if(!box)return;
   q=(q||"").toLowerCase();
   const rows=students.filter(x=>(x.student_id+" "+x.full_name+" "+(x.phone||"")+" "+(x.grade||"")).toLowerCase().includes(q));
   box.innerHTML=rows.map(x=>`<tr>
@@ -114,7 +156,7 @@ function setupResultFilters(){
   const grades=[...new Set(exams.map(x=>x.grade).filter(Boolean))].sort();
   const examNames=[...new Set(exams.map(x=>x.exam_name).filter(Boolean))].sort();
   const fill=(id,items,label)=>{
-    const el=$(id); if(!el)return;
+    const el=$(id);if(!el)return;
     const old=el.value;
     el.innerHTML=`<option value="">${label}</option>`+items.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join("");
     if(items.includes(old))el.value=old;
@@ -125,55 +167,81 @@ function setupResultFilters(){
 }
 
 function renderResults(q=""){
-  const box=$("resultsTableWrap"); if(!box)return;
+  const box=$("resultsTableWrap");if(!box)return;
   q=(q||"").toLowerCase().trim();
-  const levelFilter=$("resultLevelFilter")?.value||"";
-  const gradeFilter=$("resultGradeFilter")?.value||"";
-  const examFilter=$("resultExamFilter")?.value||"";
+  let filtered=results;
 
-  const filtered=results.filter(x=>{
-    const ex=exams.find(e=>String(e.exam_id)===String(x.exam_id))||{};
-    const text=(x.student_id+" "+(x.student_name||"")+" "+(x.exam_id||"")+" "+(x.subject||"")+" "+(ex.exam_name||"")+" "+(ex.level||"")+" "+(ex.grade||"")).toLowerCase();
-    return (!q||text.includes(q)) &&
-      (!levelFilter||String(ex.level||"")===levelFilter) &&
-      (!gradeFilter||String(ex.grade||"")===gradeFilter) &&
-      (!examFilter||String(ex.exam_name||"")===examFilter);
-  });
+  if(isRole("admin","exam_officer")){
+    const lf=$("resultLevelFilter")?.value||"";
+    const gf=$("resultGradeFilter")?.value||"";
+    const ef=$("resultExamFilter")?.value||"";
+    filtered=results.filter(x=>{
+      const ex=exams.find(e=>String(e.exam_id)===String(x.exam_id))||{};
+      const text=(x.student_id+" "+(x.student_name||"")+" "+(x.exam_id||"")+" "+(x.subject||"")+" "+(ex.exam_name||"")+" "+(ex.level||"")+" "+(ex.grade||"")).toLowerCase();
+      return (!q||text.includes(q))&&(!lf||String(ex.level||"")===lf)&&(!gf||String(ex.grade||"")===gf)&&(!ef||String(ex.exam_name||"")===ef);
+    });
+  }else if(isRole("student")){
+    // Second client-side guard; RLS is the actual database guard.
+    filtered=results.filter(x=>String(x.student_id)===String(currentProfile.student_id));
+  }else{
+    filtered=[];
+  }
 
   const groups={};
   filtered.forEach(x=>{
+    // For students, result rows are already authorized and exams are intentionally not loaded.
     const ex=exams.find(e=>String(e.exam_id)===String(x.exam_id))||{};
     const key=String(x.student_id)+"||"+String(x.exam_id);
-    if(!groups[key]) groups[key]={student_id:x.student_id,student_name:x.student_name||"",level:ex.level||"",grade:ex.grade||"",exam_id:x.exam_id,exam_name:ex.exam_name||"",items:{}};
+    if(!groups[key])groups[key]={
+      student_id:x.student_id,
+      student_name:x.student_name||"",
+      level:ex.level||"",
+      grade:ex.grade||"",
+      exam_id:x.exam_id,
+      exam_name:ex.exam_name||"",
+      items:{}
+    };
     groups[key].items[x.subject]={marks:x.marks,grade:x.grade,status:x.status};
   });
 
   const subjects=[...new Set(filtered.map(x=>x.subject).filter(Boolean))];
   const groupValues=Object.values(groups);
-  $("resultSummary").textContent=groupValues.length?`${groupValues.length} student/exam result(s) found`:"No results found";
+  $("resultSummary").textContent=groupValues.length?`${groupValues.length} result(s) found`:"No results found";
+
   if(!groupValues.length){box.innerHTML="<p>No results found.</p>";return;}
 
   box.innerHTML=`<table class="horizontal-results"><thead><tr>
-    <th>Student ID</th><th>Student</th><th>Level</th><th>Class/Grade</th><th>Exam Name</th><th>Exam ID</th>
+    <th>Student ID</th><th>Student</th>${isRole("admin","exam_officer")?"<th>Level</th><th>Class/Grade</th>":""}<th>Exam Name</th><th>Exam ID</th>
     ${subjects.map(s=>`<th>${esc(s)}</th>`).join("")}<th>Average</th><th>Overall</th>${isRole("admin","exam_officer")?"<th>Action</th>":""}
   </tr></thead><tbody>${groupValues.map(g=>{
     const vals=subjects.map(sub=>g.items[sub]?.marks).filter(v=>v!==undefined&&v!==null).map(Number);
     const avg=vals.length?(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1):"";
     const overall=vals.length?(vals.every(m=>m>=50)?"PASS":"FAIL"):"";
-    return `<tr><td>${esc(g.student_id)}</td><td>${esc(g.student_name)}</td><td>${esc(g.level)}</td><td>${esc(g.grade)}</td><td>${esc(g.exam_name)}</td><td>${esc(g.exam_id)}</td>`+
-      subjects.map(sub=>{const v=g.items[sub];return `<td>${v?`${esc(v.marks)}<br><small>${esc(v.grade||"")} · ${esc(v.status||"")}</small>`:"-"}</td>`}).join("")+
-      `<td>${avg}</td><td>${overall}</td>${isRole("admin","exam_officer")?`<td><button class="danger" onclick="deleteExam('${esc(g.exam_id)}')">🗑 Delete</button></td>`:""}</tr>`;
+    return `<tr>
+      <td>${esc(g.student_id)}</td><td>${esc(g.student_name)}</td>
+      ${isRole("admin","exam_officer")?`<td>${esc(g.level)}</td><td>${esc(g.grade)}</td>`:""}
+      <td>${esc(g.exam_name)}</td><td>${esc(g.exam_id)}</td>
+      ${subjects.map(sub=>{const v=g.items[sub];return `<td>${v?`${esc(v.marks)}<br><small>${esc(v.grade||"")} · ${esc(v.status||"")}</small>`:"-"}</td>`}).join("")}
+      <td>${avg}</td><td>${overall}</td>
+      ${isRole("admin","exam_officer")?`<td><button class="danger" onclick="deleteExam('${esc(g.exam_id)}')">🗑 Delete</button></td>`:""}
+    </tr>`;
   }).join("")}</tbody></table>`;
 }
 
 function renderFinance(q=""){
-  const box=$("financeRows"); if(!box)return;
+  const box=$("financeRows");if(!box)return;
   q=(q||"").toLowerCase();
   const rows=finance.filter(x=>(x.student_id+" "+(x.student_name||"")+" "+(x.fee_type||"")).toLowerCase().includes(q));
-  box.innerHTML=rows.map(x=>`<tr><td>${esc(x.student_name||x.student_id)}</td><td>${esc(x.fee_type)}</td><td>${Number(x.total_fee||0).toFixed(2)}</td><td>${Number(x.amount_paid||0).toFixed(2)}</td><td>${Number(x.balance||0).toFixed(2)}</td><td>${esc(x.payment_date)}</td><td>${esc(x.payment_method)}</td><td>${isRole("admin","treasurer")?`<button class="danger" onclick="deleteFinance('${esc(x.id||"")}')">🗑 Delete</button>`:""}</td></tr>`).join("");
+  box.innerHTML=rows.map(x=>`<tr>
+    <td>${esc(x.student_name||x.student_id)}</td><td>${esc(x.fee_type)}</td>
+    <td>${Number(x.total_fee||0).toFixed(2)}</td><td>${Number(x.amount_paid||0).toFixed(2)}</td>
+    <td>${Number(x.balance||0).toFixed(2)}</td><td>${esc(x.payment_date)}</td><td>${esc(x.payment_method)}</td>
+    <td>${isRole("admin","treasurer")?`<button class="danger" onclick="deleteFinance('${esc(x.id||"")}')">🗑 Delete</button>`:""}</td>
+  </tr>`).join("");
 }
 
 function studentById(id){return students.find(x=>String(x.student_id).trim()===String(id).trim());}
+
 function setStudentInfo(prefix,s){
   if(prefix==="exam"){
     $("exam_student_name").value=s?.full_name||"";
@@ -184,12 +252,15 @@ function setStudentInfo(prefix,s){
 }
 
 function buildExamSubjects(){
-  const level=$("exam_level").value, box=$("examSubjects"), body=$("examSubjectRows");
-  const list=subjectsFor(level);
+  const list=subjectsFor($("exam_level").value),box=$("examSubjects"),body=$("examSubjectRows");
   if(!list.length){box.classList.add("hidden");body.innerHTML="";return;}
-  body.innerHTML=list.map(sub=>`<tr data-subject="${esc(sub)}"><td><b>${esc(sub)}</b></td><td><input class="total" type="number" value="100" min="1"></td><td><input class="pass" type="number" value="50" min="0"></td><td><input class="marks" type="number" value="" min="0" max="100" placeholder="Marks"></td><td class="grade">-</td><td class="status">-</td><td><input class="remarks" placeholder="Remarks"></td></tr>`).join("");
+  body.innerHTML=list.map(sub=>`<tr data-subject="${esc(sub)}">
+    <td><b>${esc(sub)}</b></td><td><input class="total" type="number" value="100" min="1"></td>
+    <td><input class="pass" type="number" value="50" min="0"></td><td><input class="marks" type="number" min="0" placeholder="Marks"></td>
+    <td class="grade">-</td><td class="status">-</td><td><input class="remarks" placeholder="Remarks"></td>
+  </tr>`).join("");
   body.querySelectorAll(".marks").forEach(i=>i.addEventListener("input",()=>{
-    const tr=i.closest("tr"), m=Number(i.value), pass=Number(tr.querySelector(".pass").value);
+    const tr=i.closest("tr"),m=Number(i.value),pass=Number(tr.querySelector(".pass").value);
     tr.querySelector(".grade").textContent=i.value===""?"-":gradeOf(m);
     tr.querySelector(".status").textContent=i.value===""?"-":(m>=pass?"PASS":"FAIL");
   }));
@@ -200,152 +271,168 @@ function today(id){if($(id))$(id).value=new Date().toISOString().slice(0,10);}
 
 function bindEvents(){
   $("student_level").addEventListener("change",()=>{
-    const level=$("student_level").value,g=$("student_grade");
-    g.innerHTML='<option value="">Class/Grade *</option>'+(GRADES[level]||[]).map(x=>`<option>${x}</option>`).join("");
+    const level=$("student_level").value;
+    $("student_grade").innerHTML='<option value="">Class/Grade *</option>'+(GRADES[level]||[]).map(x=>`<option>${x}</option>`).join("");
   });
   today("registration_date");today("exam_date");today("finance_payment_date");
 
   $("studentForm").addEventListener("submit",async e=>{
     e.preventDefault();
-    if(!isRole("admin"))return alert("Admin oo keliya ayaa arday diiwaangelin kara.");
-    const fd=new FormData(e.target),obj=Object.fromEntries(fd.entries());
+    if(!isRole("admin"))return alert("Admin oo keliya.");
+    const obj=Object.fromEntries(new FormData(e.target).entries());
     obj.student_id=obj.student_id.trim();
-    if(studentById(obj.student_id)){ $("studentMsg").textContent="Student ID-kan hore ayuu u jiraa.";$("studentMsg").className="msg error";return;}
-    try{
-      if(supa){const {error}=await supa.from("students").insert(obj);if(error)throw error;}
-      else{students.push({...obj,id:crypto.randomUUID()});localSet("jawiil_students",students);}
-      await loadAll();e.target.reset();today("registration_date");
-      $("studentMsg").textContent="Ardayga si guul leh ayaa loo diiwaangeliyey.";$("studentMsg").className="msg ok";
-    }catch(err){console.error(err);$("studentMsg").textContent="Kaydintu way fashilantay: "+err.message;$("studentMsg").className="msg error";}
+    if(studentById(obj.student_id))return alert("Student ID-kan hore ayuu u jiraa.");
+    const {error}=await supa.from("students").insert(obj);
+    if(error)return alert("Kaydintu way fashilantay: "+error.message);
+    await loadAll();e.target.reset();today("registration_date");alert("Ardayga waa la kaydiyey.");
   });
 
   $("studentSearchBtn").onclick=()=>renderStudents($("studentSearch").value);
   $("studentSearch").oninput=()=>renderStudents($("studentSearch").value);
 
   $("exam_student_id").addEventListener("input",()=>{
-    const s=studentById($("exam_student_id").value);setStudentInfo("exam",s);
-    if(s){$("examStudentHint").textContent="Ardayga waa la helay. Maadooyinka waa la soo bandhigay.";$("examStudentHint").className="msg ok";buildExamSubjects();}
-    else{$("examStudentHint").textContent="Student ID lama helin.";$("examStudentHint").className="msg error";$("examSubjects").classList.add("hidden");}
+    if(!isRole("admin","exam_officer"))return;
+    const s=studentById($("exam_student_id").value);
+    setStudentInfo("exam",s);
+    if(s){
+      $("examStudentHint").textContent="Ardayga waa la helay. Maadooyinka waa la soo bandhigay.";
+      $("examStudentHint").className="msg ok";
+      buildExamSubjects();
+    }else{
+      $("examStudentHint").textContent="Student ID lama helin.";
+      $("examStudentHint").className="msg error";
+      $("examSubjects").classList.add("hidden");
+    }
   });
 
   $("examForm").addEventListener("submit",async e=>{
     e.preventDefault();
-    if(!isRole("admin","exam_officer"))return alert("Exam Officer ama Admin ayaa geli kara Exam.");
+    if(!isRole("admin","exam_officer"))return alert("Admin ama Exam Officer oo keliya.");
     const s=studentById($("exam_student_id").value),eid=$("exam_id").value.trim();
-    if(!s)return alert("Marka hore geli Student ID sax ah.");
-    if(!eid)return alert("Geli Exam ID.");
-    if(exams.some(x=>String(x.exam_id)===eid))return alert("Exam ID-kan hore ayuu u jiraa. Isticmaal Exam ID cusub.");
+    if(!s)return alert("Student ID sax ah geli.");
+    if(!eid)return alert("Exam ID geli.");
+    if(exams.some(x=>String(x.exam_id)===eid))return alert("Exam ID-kan hore ayuu u jiraa.");
     const trs=[...document.querySelectorAll("#examSubjectRows tr")];
     if(!trs.length)return alert("Maadooyin lama helin.");
     if(trs.some(tr=>tr.querySelector(".marks").value===""))return alert("Geli marks-ka dhammaan maadooyinka.");
-    const examObj={exam_id:eid,exam_name:$("exam_name").value.trim(),student_id:s.student_id,student_name:s.full_name,level:s.level,grade:s.grade,subject:"All Subjects",academic_year:$("exam_year").value,semester:$("semester").value,exam_date:$("exam_date").value,total_marks:100,pass_mark:50};
-    const resultObjs=trs.map(tr=>({student_id:s.student_id,student_name:s.full_name,exam_id:eid,subject:tr.dataset.subject,total_marks:Number(tr.querySelector(".total").value||100),marks:Number(tr.querySelector(".marks").value),grade:gradeOf(Number(tr.querySelector(".marks").value)),status:Number(tr.querySelector(".marks").value)>=Number(tr.querySelector(".pass").value)?"PASS":"FAIL",remarks:tr.querySelector(".remarks").value,created_at:new Date().toISOString()}));
-    try{
-      if(supa){
-        let r=await supa.from("exams").insert(examObj);if(r.error)throw r.error;
-        r=await supa.from("results").insert(resultObjs);if(r.error){
-          await supa.from("exams").delete().eq("exam_id",eid);
-          throw r.error;
-        }
-      }else{exams.push({...examObj,id:crypto.randomUUID()});results.push(...resultObjs.map(x=>({...x,id:crypto.randomUUID()})));localSet("jawiil_exams",exams);localSet("jawiil_results",results);}
-      await loadAll();alert("Exam iyo dhammaan maadooyinkiisa waa la keydiyey.");e.target.reset();$("examSubjects").classList.add("hidden");today("exam_date");
-    }catch(err){console.error(err);alert("Kaydinta Exam-ka way fashilantay: "+err.message);}
+
+    const examObj={
+      exam_id:eid,exam_name:$("exam_name").value.trim(),student_id:s.student_id,student_name:s.full_name,
+      level:s.level,grade:s.grade,subject:"All Subjects",academic_year:$("exam_year").value,
+      semester:$("semester").value,exam_date:$("exam_date").value,total_marks:100,pass_mark:50
+    };
+    const resultObjs=trs.map(tr=>({
+      student_id:s.student_id,student_name:s.full_name,exam_id:eid,subject:tr.dataset.subject,
+      total_marks:Number(tr.querySelector(".total").value||100),marks:Number(tr.querySelector(".marks").value),
+      grade:gradeOf(Number(tr.querySelector(".marks").value)),
+      status:Number(tr.querySelector(".marks").value)>=Number(tr.querySelector(".pass").value)?"PASS":"FAIL",
+      remarks:tr.querySelector(".remarks").value
+    }));
+
+    let r=await supa.from("exams").insert(examObj);
+    if(r.error)return alert("Exam kaydintiisu fashilantay: "+r.error.message);
+    r=await supa.from("results").insert(resultObjs);
+    if(r.error){
+      await supa.from("exams").delete().eq("exam_id",eid);
+      return alert("Results kaydintoodu fashilantay: "+r.error.message);
+    }
+    await loadAll();e.target.reset();$("examSubjects").classList.add("hidden");today("exam_date");
+    alert("Exam iyo dhammaan maadooyinkiisa waa la kaydiyey.");
   });
 
   $("resultSearchBtn").onclick=()=>renderResults($("resultSearch").value);
   $("resultSearch").oninput=()=>renderResults($("resultSearch").value);
-  ["resultLevelFilter","resultGradeFilter","resultExamFilter"].forEach(id=>$(id).addEventListener("change",()=>renderResults($("resultSearch").value)));
+  ["resultLevelFilter","resultGradeFilter","resultExamFilter"].forEach(id=>$(id)?.addEventListener("change",()=>renderResults($("resultSearch").value)));
 
   $("resultPrintBtn").onclick=()=>{
+    if(!isRole("admin","exam_officer","student"))return;
     const area=$("resultsTableWrap").innerHTML;
-    if(!area||area.includes("No results found")){alert("Marka hore soo saar natiijooyinka aad rabto inaad print-gareyso.");return;}
+    if(!area||area.includes("No results found"))return alert("Natiijo ma jirto.");
     const w=window.open("","_blank");
-    if(!w){alert("Browser-ku wuxuu xannibay Print window. Ogolow pop-up kadib mar kale taabo Print.");return;}
-    w.document.write(`<!doctype html><html><head><title>JAWIIL Exam Results</title><style>body{font-family:Arial;padding:20px}table{width:100%;border-collapse:collapse;min-width:900px}th,td{border:1px solid #999;padding:7px;text-align:left;white-space:nowrap}th{background:#124d80;color:white}</style></head><body><h1>JAWIIL Primary and Secondary School</h1><h2>Exam Results</h2>${area}</body></html>`);
+    if(!w)return alert("Ogolow pop-up kadib Print samee.");
+    w.document.write(`<!doctype html><html><head><title>JAWIIL Exam Results</title><style>body{font-family:Arial;padding:20px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #999;padding:7px;white-space:nowrap}th{background:#124d80;color:white}</style></head><body><h1>JAWIIL Primary and Secondary School</h1><h2>Exam Results</h2>${area}</body></html>`);
     w.document.close();w.focus();setTimeout(()=>w.print(),300);
   };
 
-  $("finance_student_id").addEventListener("input",()=>{const s=studentById($("finance_student_id").value);setStudentInfo("finance",s);});
-  $("finance_total_fee").oninput=$("finance_amount_paid").oninput=()=>{$("finance_balance").value=(Number($("finance_total_fee").value||0)-Number($("finance_amount_paid").value||0)).toFixed(2);};
+  $("finance_student_id").addEventListener("input",()=>setStudentInfo("finance",studentById($("finance_student_id").value)));
+  $("finance_total_fee").oninput=$("finance_amount_paid").oninput=()=>{
+    $("finance_balance").value=(Number($("finance_total_fee").value||0)-Number($("finance_amount_paid").value||0)).toFixed(2);
+  };
 
   $("financeForm").addEventListener("submit",async e=>{
     e.preventDefault();
-    if(!isRole("admin","treasurer"))return alert("Treasurer ama Admin ayaa geli kara Finance.");
+    if(!isRole("admin","treasurer"))return alert("Admin ama Treasurer oo keliya.");
     const sid=$("finance_student_id").value.trim(),s=studentById(sid);
     if(!s)return alert("Student ID lama helin.");
-    const obj={transaction_id:$("finance_transaction_id").value.trim(),student_id:sid,student_name:s.full_name,fee_type:$("finance_fee_type").value.trim(),total_fee:Number($("finance_total_fee").value||0),amount_paid:Number($("finance_amount_paid").value||0),balance:Number($("finance_balance").value||0),payment_date:$("finance_payment_date").value,payment_method:$("finance_method").value,receipt_no:$("finance_receipt_no").value.trim(),remarks:$("finance_remarks").value};
-    try{
-      if(supa){const {error}=await supa.from("finance").insert(obj);if(error)throw error;}
-      else{finance.push({...obj,id:crypto.randomUUID()});localSet("jawiil_finance",finance);}
-      await loadAll();alert("Payment-ka waa la keydiyey.");e.target.reset();today("finance_payment_date");
-    }catch(err){console.error(err);alert("Finance kaydintiisu way fashilantay: "+err.message);}
+    const obj={
+      transaction_id:$("finance_transaction_id").value.trim(),student_id:sid,student_name:s.full_name,
+      fee_type:$("finance_fee_type").value.trim(),total_fee:Number($("finance_total_fee").value||0),
+      amount_paid:Number($("finance_amount_paid").value||0),balance:Number($("finance_balance").value||0),
+      payment_date:$("finance_payment_date").value,payment_method:$("finance_method").value,
+      receipt_no:$("finance_receipt_no").value.trim(),remarks:$("finance_remarks").value
+    };
+    const {error}=await supa.from("finance").insert(obj);
+    if(error)return alert("Finance kaydintiisu fashilantay: "+error.message);
+    await loadAll();e.target.reset();today("finance_payment_date");alert("Payment-ka waa la kaydiyey.");
   });
 
   $("financeSearchBtn").onclick=()=>renderFinance($("financeSearch").value);
   $("financeSearch").oninput=()=>renderFinance($("financeSearch").value);
 
-  $("globalSearchBtn").onclick=()=>{
-    const q=$("globalSearch").value.toLowerCase(),rows=students.filter(s=>(s.student_id+" "+s.full_name+" "+(s.phone||"")).toLowerCase().includes(q));
-    $("globalSearchOutput").innerHTML=rows.length?`<table><thead><tr><th>Student ID</th><th>Name</th><th>Level</th><th>Class</th><th>Phone</th></tr></thead><tbody>${rows.map(s=>`<tr><td>${esc(s.student_id)}</td><td>${esc(s.full_name)}</td><td>${esc(s.level)}</td><td>${esc(s.grade)}</td><td>${esc(s.phone)}</td></tr>`).join("")}</tbody></table>`:"No student found.";
-  };
+  $("globalSearchBtn").onclick=globalSearch;
+  $("globalSearch").oninput=globalSearch;
 
   $("saveRoleBtn")?.addEventListener("click",saveProfile);
-  document.querySelectorAll(".nav").forEach(btn=>{
-    if(btn.id==="logoutBtn")return;
-    btn.onclick=()=>{
-      document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));
-      btn.classList.add("active");
-      document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));
-      const p=$(btn.dataset.page);if(p)p.classList.add("active");
-    };
+
+  document.querySelectorAll(".nav[data-page]").forEach(btn=>{
+    btn.addEventListener("click",()=>showPage(btn.dataset.page));
   });
 }
 
+function globalSearch(){
+  const box=$("globalSearchOutput");if(!box)return;
+  const q=($("globalSearch").value||"").toLowerCase().trim();
+  if(!q){box.innerHTML="";return;}
+  if(isRole("exam_officer","admin")){
+    const rows=students.filter(s=>(s.student_id+" "+s.full_name+" "+(s.phone||"")).toLowerCase().includes(q));
+    box.innerHTML=rows.length?`<table><thead><tr><th>Student ID</th><th>Name</th><th>Level</th><th>Class</th></tr></thead><tbody>${rows.map(s=>`<tr><td>${esc(s.student_id)}</td><td>${esc(s.full_name)}</td><td>${esc(s.level)}</td><td>${esc(s.grade)}</td></tr>`).join("")}</tbody></table>`:"No student found.";
+  }else if(isRole("treasurer","admin")){
+    const rows=finance.filter(f=>(f.student_id+" "+(f.student_name||"")).toLowerCase().includes(q));
+    box.innerHTML=rows.length?`<table><thead><tr><th>Student ID</th><th>Name</th><th>Paid</th><th>Date</th></tr></thead><tbody>${rows.map(f=>`<tr><td>${esc(f.student_id)}</td><td>${esc(f.student_name)}</td><td>${esc(f.amount_paid)}</td><td>${esc(f.payment_date)}</td></tr>`).join("")}</tbody></table>`:"No finance record found.";
+  }else box.innerHTML="";
+}
+
 async function deleteStudent(id){
-  if(!isRole("admin"))return alert("Admin oo keliya ayaa tirtiri kara arday.");
-  if(!confirm("Ma hubtaa inaad tirtirayso ardaygan iyo xogtiisa Exam/Results/Finance?"))return;
-  try{
-    if(supa){
-      let r=await supa.from("results").delete().eq("student_id",id);if(r.error)throw r.error;
-      r=await supa.from("exams").delete().eq("student_id",id);if(r.error)throw r.error;
-      r=await supa.from("finance").delete().eq("student_id",id);if(r.error)throw r.error;
-      r=await supa.from("students").delete().eq("student_id",id);if(r.error)throw r.error;
-    }else{
-      students=students.filter(x=>String(x.student_id)!==String(id));exams=exams.filter(x=>String(x.student_id)!==String(id));results=results.filter(x=>String(x.student_id)!==String(id));finance=finance.filter(x=>String(x.student_id)!==String(id));
-      localSet("jawiil_students",students);localSet("jawiil_exams",exams);localSet("jawiil_results",results);localSet("jawiil_finance",finance);
-    }
-    await loadAll();alert("Ardayga iyo xogtiisa waa la tirtiray.");
-  }catch(err){alert("Tirtiriddu way fashilantay: "+err.message);}
+  if(!isRole("admin"))return alert("Admin oo keliya.");
+  if(!confirm("Ma hubtaa inaad tirtirayso ardaygan iyo Exam/Results/Finance?"))return;
+  for(const t of ["results","exams","finance","students"]){
+    const {error}=await supa.from(t).delete().eq("student_id",id);
+    if(error)return alert("Tirtiriddu fashilantay: "+error.message);
+  }
+  await loadAll();
 }
 
 async function deleteExam(examId){
-  if(!isRole("admin","exam_officer"))return alert("Admin ama Exam Officer ayaa tirtiri kara Exam.");
-  if(!confirm("Ma hubtaa inaad tirtirayso exam-kan iyo dhammaan maadooyinkiisa?"))return;
-  try{
-    if(supa){
-      let r=await supa.from("results").delete().eq("exam_id",examId);if(r.error)throw r.error;
-      r=await supa.from("exams").delete().eq("exam_id",examId);if(r.error)throw r.error;
-    }else{
-      exams=exams.filter(x=>String(x.exam_id)!==String(examId));results=results.filter(x=>String(x.exam_id)!==String(examId));
-      localSet("jawiil_exams",exams);localSet("jawiil_results",results);
-    }
-    await loadAll();alert("Exam-ka iyo natiijooyinkiisa waa la tirtiray.");
-  }catch(err){alert("Tirtiriddu way fashilantay: "+err.message);}
+  if(!isRole("admin","exam_officer"))return alert("Admin ama Exam Officer oo keliya.");
+  if(!confirm("Ma hubtaa inaad tirtirayso Exam-kan iyo Results-kiisa?"))return;
+  let r=await supa.from("results").delete().eq("exam_id",examId);
+  if(r.error)return alert(r.error.message);
+  r=await supa.from("exams").delete().eq("exam_id",examId);
+  if(r.error)return alert(r.error.message);
+  await loadAll();
 }
 
 async function deleteFinance(id){
-  if(!isRole("admin","treasurer"))return alert("Admin ama Treasurer ayaa tirtiri kara payment.");
-  if(!id)return alert("Record-kan ID ma laha.");
+  if(!isRole("admin","treasurer"))return alert("Admin ama Treasurer oo keliya.");
+  if(!id)return alert("Record ID lama helin.");
   if(!confirm("Ma hubtaa inaad tirtirayso payment-kan?"))return;
-  try{
-    if(supa){const {error}=await supa.from("finance").delete().eq("id",id);if(error)throw error;}
-    else{finance=finance.filter(x=>String(x.id)!==String(id));localSet("jawiil_finance",finance);}
-    await loadAll();alert("Payment-ka waa la tirtiray.");
-  }catch(err){alert("Tirtiriddu way fashilantay: "+err.message);}
+  const {error}=await supa.from("finance").delete().eq("id",id);
+  if(error)return alert(error.message);
+  await loadAll();
 }
 
 async function loadProfiles(){
-  if(!isRole("admin")||!supa)return;
+  if(!isRole("admin"))return;
   const {data,error}=await supa.from("profiles").select("user_id,email,full_name,role,student_id,created_at").order("created_at",{ascending:false});
   if(error)throw error;
   profiles=data||[];
@@ -354,36 +441,38 @@ async function loadProfiles(){
 
 async function saveProfile(){
   if(!isRole("admin"))return;
-  const user_id=$("role_user_id").value.trim(), email=$("role_email").value.trim(), full_name=$("role_full_name").value.trim(), selectedRole=$("role_select").value, student_id=$("role_student_id").value.trim()||null;
-  if(!user_id)return alert("Geli Auth User ID (UUID).");
-  try{
-    const {error}=await supa.from("profiles").upsert({user_id,email:email||null,full_name:full_name||null,role:selectedRole,student_id:selectedRole==="student"?student_id:null,updated_at:new Date().toISOString()},{onConflict:"user_id"});
-    if(error)throw error;
-    $("roleMsg").textContent="Role-ka waa la kaydiyey.";
-    $("roleMsg").className="msg ok";
-    await loadProfiles();
-  }catch(err){
-    console.error(err);$("roleMsg").textContent="Role kaydintiisu way fashilantay: "+err.message;$("roleMsg").className="msg error";
-  }
+  const user_id=$("role_user_id").value.trim();
+  const email=$("role_email").value.trim();
+  const full_name=$("role_full_name").value.trim();
+  const selectedRole=$("role_select").value;
+  const student_id=$("role_student_id").value.trim()||null;
+  if(!user_id)return alert("Auth User ID geli.");
+  if(selectedRole==="student"&&!student_id)return alert("Student role-ka Student ID waa qasab.");
+  const {error}=await supa.from("profiles").upsert({
+    user_id,email:email||null,full_name:full_name||null,role:selectedRole,
+    student_id:selectedRole==="student"?student_id:null,updated_at:new Date().toISOString()
+  },{onConflict:"user_id"});
+  $("roleMsg").textContent=error?error.message:"Role-ka waa la kaydiyey.";
+  $("roleMsg").className=error?"msg error":"msg ok";
+  if(!error)await loadProfiles();
 }
+
+window.initDb=initDb;
+window.loadAll=loadAll;
+window.applyRoleDashboard=applyRoleDashboard;
+window.goToRoleStart=goToRoleStart;
+window.deleteStudent=deleteStudent;
+window.deleteExam=deleteExam;
+window.deleteFinance=deleteFinance;
 
 (async()=>{
   try{
     await initDb();
+    currentProfile=window.currentProfile||null;
     bindEvents();
-    if(!currentProfile && supa){
-      const {data:{session}}=await supa.auth.getSession();
-      if(session){
-        const {data,error}=await supa.from("profiles").select("user_id,email,full_name,role,student_id").eq("user_id",session.user.id).maybeSingle();
-        if(error)throw error;
-        currentProfile=data;
-      }
-    }
-    await loadAll();
   }catch(e){
     console.error(e);
     const c=$("connection");
     if(c){c.textContent="Database error";c.className="connection error";}
-    alert("Database lama akhrin karin: "+e.message);
   }
 })();

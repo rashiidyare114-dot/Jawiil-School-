@@ -6,300 +6,320 @@
 <title>JAWIIL Primary and Secondary School</title>
 <link rel="stylesheet" href="style.css">
 <style>
-  /* Login layer added for the new role-based system */
-  #loginScreen{
-    position:fixed;inset:0;z-index:9999;
-    display:flex;align-items:center;justify-content:center;
-    background:#f4f7fb;padding:20px;
-  }
-  #loginScreen.hidden{display:none}
-  .login-card{
-    width:min(420px,100%);background:#fff;border-radius:18px;
-    padding:28px;box-shadow:0 10px 35px rgba(0,0,0,.12);
-  }
-  .login-card h1{margin:0 0 6px;text-align:center}
-  .login-card p{text-align:center;color:#666;margin:0 0 22px}
-  .login-card input{
-    width:100%;box-sizing:border-box;padding:13px;margin:7px 0;
-    border:1px solid #d7dce5;border-radius:10px;font-size:16px;
-  }
-  .login-card button{
-    width:100%;padding:13px;margin-top:10px;border:0;border-radius:10px;
-    cursor:pointer;font-size:16px;font-weight:600;
-  }
-  #loginBtn{background:#1677ff;color:#fff}
-  #logoutBtn{background:#eee}
-  #loginMsg{min-height:22px;margin-top:10px;text-align:center;color:#c0392b}
-  .userbox{display:flex;align-items:center;gap:8px}
-  .role-badge{
-    display:inline-block;padding:4px 9px;border-radius:999px;
-    background:#eaf2ff;color:#1769d2;font-size:12px;font-weight:700;
-  }
-  #userEmail{font-size:13px}
-  #users.page .panel{margin-bottom:18px}
+#loginScreen,#resetScreen{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:#f4f7fb;padding:20px}
+#loginScreen.hidden,#resetScreen.hidden{display:none}
+.auth-card{width:min(420px,100%);background:#fff;border-radius:18px;padding:28px;box-shadow:0 10px 35px rgba(0,0,0,.14)}
+.auth-card h1{text-align:center;margin:0 0 6px}.auth-card p{text-align:center;color:#666}
+.auth-card input{width:100%;box-sizing:border-box;padding:13px;margin:7px 0;border:1px solid #d7dce5;border-radius:10px;font-size:16px}
+.auth-card button{width:100%;padding:13px;margin-top:10px;border:0;border-radius:10px;cursor:pointer;font-size:16px;font-weight:600}
+.auth-primary{background:#1677ff;color:#fff}.auth-link{background:transparent!important;color:#1677ff!important}
+.auth-msg{text-align:center;min-height:22px;margin-top:10px;color:#c0392b}
+.userbox{display:flex;align-items:center;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.role-badge{padding:4px 9px;border-radius:999px;background:#eaf2ff;color:#1769d2;font-size:12px;font-weight:700}
+.nav.role-hidden{display:none!important}
+.page.role-hidden{display:none!important}
+.student-only-note{padding:12px;border-radius:10px;background:#eef6ff;margin-bottom:15px}
 </style>
 </head>
 <body>
 
-<!-- LOGIN -->
 <div id="loginScreen">
-  <div class="login-card">
+  <div class="auth-card">
     <h1>JAWIIL SCHOOL</h1>
     <p>School Management System</p>
     <input id="loginEmail" type="email" placeholder="Email" autocomplete="username">
     <input id="loginPassword" type="password" placeholder="Password" autocomplete="current-password">
-    <button id="loginBtn">🔐 Login</button>
-    <div id="loginMsg"></div>
+    <button id="loginBtn" class="auth-primary">🔐 Login</button>
+    <button id="forgotBtn" class="auth-link">Forgot Password?</button>
+    <div id="loginMsg" class="auth-msg"></div>
   </div>
 </div>
 
-<!-- APP -->
+<div id="resetScreen" class="hidden">
+  <div class="auth-card">
+    <h1>Reset Password</h1>
+    <p>Geli password-ka cusub.</p>
+    <input id="newPassword" type="password" placeholder="New password">
+    <input id="newPassword2" type="password" placeholder="Confirm new password">
+    <button id="resetBtn" class="auth-primary">🔑 Save New Password</button>
+    <div id="resetMsg" class="auth-msg"></div>
+  </div>
+</div>
+
 <div class="app" id="appShell" style="display:none">
-  <aside class="sidebar">
-    <div class="brand">JAWIIL<br><small>School Management</small></div>
+<aside class="sidebar">
+  <div class="brand">JAWIIL<br><small>School Management</small></div>
+  <button class="nav" data-page="dashboard" data-roles="admin,exam_officer,treasurer">🏠 Dashboard</button>
+  <button class="nav" data-page="students" data-roles="admin">👨‍🎓 Student Registration</button>
+  <button class="nav" data-page="exams" data-roles="admin,exam_officer">📝 Exam Entry</button>
+  <button class="nav" data-page="results" data-roles="admin,exam_officer,student">📊 Exam Results</button>
+  <button class="nav" data-page="finance" data-roles="admin,treasurer">💰 Finance</button>
+  <button class="nav" data-page="users" data-roles="admin">👥 Users & Roles</button>
+  <button id="logoutBtn" class="nav">🚪 Logout</button>
+</aside>
 
-    <button class="nav active" data-page="dashboard">🏠 Dashboard</button>
-    <button class="nav" data-page="students" data-role="admin">👨‍🎓 Student Registration</button>
-    <button class="nav" data-page="exams" data-role="admin,exam_officer">📝 Exam Entry</button>
-    <button class="nav" data-page="results" data-role="admin,exam_officer,student">📊 Exam Results</button>
-    <button class="nav" data-page="finance" data-role="admin,treasurer">💰 Finance</button>
-    <button class="nav" data-page="users" data-role="admin">👥 Users & Roles</button>
+<main class="main">
+<header class="topbar">
+  <div>
+    <h1>JAWIIL Primary and Secondary School</h1>
+    <p>Student Management System</p>
+  </div>
+  <div>
+    <div id="connection" class="connection">Checking database…</div>
+    <div class="userbox"><span id="userEmail"></span><span id="userRole" class="role-badge"></span></div>
+  </div>
+</header>
 
-    <button id="logoutBtn" class="nav">🚪 Logout</button>
-  </aside>
+<section id="dashboard" class="page" data-page-roles="admin,exam_officer,treasurer">
+  <h2>🏠 Dashboard</h2>
+  <div id="dashboardNote" class="student-only-note"></div>
+  <div class="cards" id="dashboardCards"></div>
+  <div class="panel" id="dashboardSearchPanel">
+    <h3 id="dashboardSearchTitle">Quick Search</h3>
+    <div class="searchrow"><input id="globalSearch" placeholder="Search…"><button id="globalSearchBtn" class="primary">Search</button></div>
+    <div id="globalSearchOutput" class="tablewrap"></div>
+  </div>
+</section>
 
-  <main class="main">
-    <header class="topbar">
-      <div>
-        <h1>JAWIIL Primary and Secondary School</h1>
-        <p>Student Management System</p>
-      </div>
-      <div>
-        <div id="connection" class="connection">Checking database…</div>
-        <div class="userbox">
-          <span id="userEmail"></span>
-          <span id="userRole" class="role-badge"></span>
-        </div>
-      </div>
-    </header>
+<section id="students" class="page" data-page-roles="admin">
+<h2>👨‍🎓 Student Registration</h2>
+<form id="studentForm" class="panel formgrid">
+<input name="student_id" id="student_id" placeholder="Student ID *" required>
+<input name="admission_no" placeholder="Admission No">
+<input name="full_name" placeholder="Full Name *" required>
+<select name="gender"><option value="">Gender</option><option>Male</option><option>Female</option></select>
+<input name="dob" type="date"><input name="phone" placeholder="Phone">
+<input name="guardian" placeholder="Guardian Name"><input name="guardian_phone" placeholder="Guardian Phone">
+<select name="level" id="student_level" required><option value="">School Level *</option><option>Primary</option><option>Middle</option><option>Secondary</option></select>
+<select name="grade" id="student_grade" required><option value="">Class/Grade *</option></select>
+<input name="academic_year" value="2026" placeholder="Academic Year">
+<input name="registration_date" type="date" id="registration_date">
+<input name="address" class="wide" placeholder="Address">
+<div class="actions wide"><button class="primary" type="submit">💾 Save Student</button><button type="reset">Clear</button></div>
+<div id="studentMsg" class="msg wide"></div>
+</form>
+<div class="panel">
+<div class="toolbar"><h3>Registered Students</h3><div class="searchrow"><input id="studentSearch" placeholder="Search Student ID or Name"><button id="studentSearchBtn">Search</button></div></div>
+<div class="tablewrap"><table><thead><tr><th>Student ID</th><th>Name</th><th>Level</th><th>Class</th><th>Phone</th><th>Year</th><th>Action</th></tr></thead><tbody id="studentRows"></tbody></table></div>
+</div>
+</section>
 
-    <section id="dashboard" class="page active">
-      <h2>🏠 Dashboard</h2>
-      <div class="cards">
-        <div class="card"><b id="countStudents">0</b><span>Students</span></div>
-        <div class="card"><b id="countExams">0</b><span>Exam Entries</span></div>
-        <div class="card"><b id="countResults">0</b><span>Results</span></div>
-        <div class="card"><b id="totalPaid">$0.00</b><span>Total Paid</span></div>
-      </div>
-      <div class="panel">
-        <h3>Quick Search</h3>
-        <div class="searchrow">
-          <input id="globalSearch" placeholder="Search Student ID, name, phone…">
-          <button id="globalSearchBtn" class="primary">Search</button>
-        </div>
-        <div id="globalSearchOutput" class="tablewrap"></div>
-      </div>
-    </section>
+<section id="exams" class="page" data-page-roles="admin,exam_officer">
+<h2>📝 Exam Entry</h2>
+<form id="examForm" class="panel">
+<div class="formgrid">
+<input id="exam_student_id" placeholder="Student ID *" required>
+<input id="exam_student_name" placeholder="Student Name" readonly>
+<input id="exam_level" placeholder="School Level" readonly>
+<input id="exam_grade" placeholder="Class/Grade" readonly>
+<input id="exam_id" placeholder="Exam ID *" required>
+<input id="exam_name" placeholder="Exam Name *" required>
+<input id="exam_year" value="2026" placeholder="Academic Year">
+<select id="semester"><option>Term 1</option><option>Term 2</option><option>Term 3</option></select>
+<input id="exam_date" type="date">
+</div>
+<div id="examStudentHint" class="msg"></div>
+<div id="examSubjects" class="subject-box hidden">
+<h3>Subjects — geli Marks-ka maado kasta</h3>
+<div class="tablewrap"><table class="subjects"><thead><tr><th>Subject</th><th>Total</th><th>Pass</th><th>Marks</th><th>Grade</th><th>Status</th><th>Remarks</th></tr></thead><tbody id="examSubjectRows"></tbody></table></div>
+<div class="actions"><button type="submit" class="primary">💾 Save Complete Exam</button></div>
+<div class="msg">Dhammaan maadooyinka hal mar ayaa la kaydinayaa.</div>
+</div>
+</form>
+</section>
 
-    <section id="students" class="page">
-      <h2>👨‍🎓 Student Registration</h2>
-      <form id="studentForm" class="panel formgrid">
-        <input name="student_id" id="student_id" placeholder="Student ID *" required>
-        <input name="admission_no" placeholder="Admission No">
-        <input name="full_name" placeholder="Full Name *" required>
-        <select name="gender"><option value="">Gender</option><option>Male</option><option>Female</option></select>
-        <input name="dob" type="date" title="Date of Birth">
-        <input name="phone" placeholder="Phone">
-        <input name="guardian" placeholder="Guardian Name">
-        <input name="guardian_phone" placeholder="Guardian Phone">
-        <select name="level" id="student_level" required><option value="">School Level *</option><option>Primary</option><option>Middle</option><option>Secondary</option></select>
-        <select name="grade" id="student_grade" required><option value="">Class/Grade *</option></select>
-        <input name="academic_year" id="student_year" placeholder="Academic Year" value="2026">
-        <input name="registration_date" type="date" id="registration_date">
-        <input name="address" class="wide" placeholder="Address">
-        <div class="actions wide"><button class="primary" type="submit">💾 Save Student</button><button type="reset" class="secondary">Clear</button></div>
-        <div id="studentMsg" class="msg wide"></div>
-      </form>
-      <div class="panel">
-        <div class="toolbar"><h3>Registered Students</h3><div class="searchrow"><input id="studentSearch" placeholder="Search Student ID or Name"><button id="studentSearchBtn">Search</button></div></div>
-        <div class="tablewrap"><table><thead><tr><th>Student ID</th><th>Name</th><th>Level</th><th>Class</th><th>Phone</th><th>Year</th><th>Action</th></tr></thead><tbody id="studentRows"></tbody></table></div>
-      </div>
-    </section>
+<section id="results" class="page" data-page-roles="admin,exam_officer,student">
+<h2>📊 Exam Results</h2>
+<div id="studentResultsNote" class="student-only-note" style="display:none"></div>
+<div class="panel"><p><b>OUTPUT KELIYA.</b> Natiijooyinka waxay si toos ah uga yimaadaan Exam Entry.</p></div>
+<div class="panel">
+<div class="toolbar"><h3 id="resultsHeading">Results Search & Filter</h3>
+<div class="searchrow" id="resultsFilters">
+<input id="resultSearch" placeholder="Student ID, name, Exam ID">
+<select id="resultLevelFilter"><option value="">All Levels</option></select>
+<select id="resultGradeFilter"><option value="">All Classes</option></select>
+<select id="resultExamFilter"><option value="">All Exams</option></select>
+<button id="resultSearchBtn" class="primary">Filter</button>
+<button id="resultPrintBtn">🖨 Print</button>
+</div>
+</div>
+<div id="resultSummary" class="summary"></div>
+<div class="tablewrap" id="resultsTableWrap"></div>
+</div>
+</section>
 
-    <section id="exams" class="page">
-      <h2>📝 Exam Entry</h2>
-      <form id="examForm" class="panel">
-        <div class="formgrid">
-          <input id="exam_student_id" placeholder="Student ID *" required>
-          <input id="exam_student_name" placeholder="Student Name" readonly>
-          <input id="exam_level" placeholder="School Level" readonly>
-          <input id="exam_grade" placeholder="Class/Grade" readonly>
-          <input id="exam_id" placeholder="Exam ID *" required>
-          <input id="exam_name" placeholder="Exam Name *" required>
-          <input id="exam_year" placeholder="Academic Year" value="2026">
-          <select id="semester"><option>Term 1</option><option>Term 2</option><option>Term 3</option></select>
-          <input id="exam_date" type="date">
-        </div>
-        <div id="examStudentHint" class="msg"></div>
-        <div id="examSubjects" class="subject-box hidden">
-          <h3>Subjects — geli Marks-ka maado kasta</h3>
-          <div class="tablewrap"><table class="subjects"><thead><tr><th>Subject</th><th>Total</th><th>Pass</th><th>Marks</th><th>Grade</th><th>Status</th><th>Remarks</th></tr></thead><tbody id="examSubjectRows"></tbody></table></div>
-          <div class="actions"><button type="submit" class="primary">💾 Save Complete Exam</button></div>
-          <div class="msg">Dhammaan maadooyinka waxaa hal mar lagu kaydinayaa Exam Entry.</div>
-        </div>
-      </form>
-    </section>
+<section id="finance" class="page" data-page-roles="admin,treasurer">
+<h2>💰 Finance</h2>
+<form id="financeForm" class="panel formgrid">
+<input id="finance_transaction_id" placeholder="Transaction ID">
+<input id="finance_student_id" placeholder="Student ID *" required>
+<input id="finance_student_name" placeholder="Student Name" readonly>
+<input id="finance_fee_type" placeholder="Fee Type *" required>
+<input id="finance_total_fee" type="number" step="0.01" placeholder="Total Fee" required>
+<input id="finance_amount_paid" type="number" step="0.01" placeholder="Amount Paid" required>
+<input id="finance_balance" placeholder="Balance" readonly>
+<input id="finance_payment_date" type="date">
+<select id="finance_method"><option>Cash</option><option>Mobile Money</option><option>Bank</option><option>Other</option></select>
+<input id="finance_receipt_no" placeholder="Receipt No">
+<input id="finance_remarks" class="wide" placeholder="Remarks">
+<div class="actions wide"><button class="primary" type="submit">💾 Save Payment</button><button type="reset">Clear</button></div>
+<div id="financeMsg" class="msg wide"></div>
+</form>
+<div class="panel">
+<div class="toolbar"><h3>Finance Records</h3><div class="searchrow"><input id="financeSearch" placeholder="Student ID, name, fee type"><button id="financeSearchBtn">Search</button></div></div>
+<div class="tablewrap"><table><thead><tr><th>Student</th><th>Fee</th><th>Total</th><th>Paid</th><th>Balance</th><th>Date</th><th>Method</th><th>Action</th></tr></thead><tbody id="financeRows"></tbody></table></div>
+</div>
+</section>
 
-    <section id="results" class="page">
-      <h2>📊 Exam Results</h2>
-      <div class="panel"><p><b>OUTPUT KELIYA.</b> Halkan wax natiijo ah laguma gelinayo. Natiijooyinka waxay si toos ah uga yimaadaan Exam Entry.</p></div>
-      <div class="panel">
-        <div class="toolbar"><h3>Results Search & Filter</h3><div class="searchrow">
-          <input id="resultSearch" placeholder="Student ID, name, Exam ID">
-          <select id="resultLevelFilter"><option value="">All Levels</option></select>
-          <select id="resultGradeFilter"><option value="">All Classes</option></select>
-          <select id="resultExamFilter"><option value="">All Exams</option></select>
-          <button id="resultSearchBtn" class="primary">Filter</button>
-          <button id="resultPrintBtn" class="secondary">🖨 Print</button>
-        </div></div>
-        <div id="resultSummary" class="summary"></div>
-        <div class="tablewrap" id="resultsTableWrap"></div>
-      </div>
-    </section>
-
-    <section id="finance" class="page">
-      <h2>💰 Finance</h2>
-      <form id="financeForm" class="panel formgrid">
-        <input id="finance_transaction_id" placeholder="Transaction ID">
-        <input id="finance_student_id" placeholder="Student ID *" required>
-        <input id="finance_student_name" placeholder="Student Name" readonly>
-        <input id="finance_fee_type" placeholder="Fee Type *" required>
-        <input id="finance_total_fee" type="number" step="0.01" placeholder="Total Fee" required>
-        <input id="finance_amount_paid" type="number" step="0.01" placeholder="Amount Paid" required>
-        <input id="finance_balance" placeholder="Balance" readonly>
-        <input id="finance_payment_date" type="date">
-        <select id="finance_method"><option>Cash</option><option>Mobile Money</option><option>Bank</option><option>Other</option></select>
-        <input id="finance_receipt_no" placeholder="Receipt No">
-        <input id="finance_remarks" class="wide" placeholder="Remarks">
-        <div class="actions wide"><button class="primary" type="submit">💾 Save Payment</button><button type="reset">Clear</button></div>
-        <div id="financeMsg" class="msg wide"></div>
-      </form>
-      <div class="panel">
-        <div class="toolbar"><h3>Finance Records</h3><div class="searchrow"><input id="financeSearch" placeholder="Student ID, name, fee type"><button id="financeSearchBtn">Search</button></div></div>
-        <div class="tablewrap"><table><thead><tr><th>Student</th><th>Fee</th><th>Total</th><th>Paid</th><th>Balance</th><th>Date</th><th>Method</th><th>Action</th></tr></thead><tbody id="financeRows"></tbody></table></div>
-      </div>
-    </section>
-
-    <!-- ADMIN USERS / ROLES -->
-    <section id="users" class="page">
-      <h2>👥 Users & Roles</h2>
-      <div class="panel">
-        <h3>Role Management</h3>
-        <p>Admin-ka ayaa maamula roles-ka users-ka.</p>
-        <div class="formgrid">
-          <input id="role_user_id" placeholder="User ID (Auth UUID)">
-          <input id="role_email" placeholder="User Email">
-          <input id="role_full_name" placeholder="Full Name">
-          <select id="role_select">
-            <option value="admin">Admin</option>
-            <option value="exam_officer">Exam Officer</option>
-            <option value="treasurer">Treasurer</option>
-            <option value="student">Student</option>
-          </select>
-          <input id="role_student_id" placeholder="Student ID (Student role only)">
-          <button id="saveRoleBtn" class="primary">💾 Save Role</button>
-        </div>
-        <div id="roleMsg" class="msg"></div>
-      </div>
-      <div class="panel">
-        <h3>Existing Profiles</h3>
-        <div class="tablewrap">
-          <table>
-            <thead><tr><th>User ID</th><th>Email</th><th>Name</th><th>Role</th><th>Student ID</th></tr></thead>
-            <tbody id="profileRows"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-  </main>
+<section id="users" class="page" data-page-roles="admin">
+<h2>👥 Users & Roles</h2>
+<div class="panel">
+<h3>Role Management</h3>
+<p>Admin-ka ayaa maamula role-ka user-ka. Auth user-ka waa in marka hore lagu sameeyo Supabase Authentication.</p>
+<div class="formgrid">
+<input id="role_user_id" placeholder="Auth User ID (UUID)">
+<input id="role_email" placeholder="User Email">
+<input id="role_full_name" placeholder="Full Name">
+<select id="role_select"><option value="admin">Admin</option><option value="exam_officer">Exam Officer</option><option value="treasurer">Treasurer</option><option value="student">Student</option></select>
+<input id="role_student_id" placeholder="Student ID (Student role only)">
+<button id="saveRoleBtn" class="primary">💾 Save Role</button>
+</div>
+<div id="roleMsg" class="msg"></div>
+</div>
+<div class="panel"><h3>Existing Profiles</h3>
+<div class="tablewrap"><table><thead><tr><th>User ID</th><th>Email</th><th>Name</th><th>Role</th><th>Student ID</th></tr></thead><tbody id="profileRows"></tbody></table></div>
+</div>
+</section>
+</main>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
-
-<!-- Auth gate: checks Supabase session before opening the application -->
 <script>
 (async function(){
-  const loginScreen = document.getElementById('loginScreen');
-  const appShell = document.getElementById('appShell');
-  const loginMsg = document.getElementById('loginMsg');
-  const emailEl = document.getElementById('loginEmail');
-  const passEl = document.getElementById('loginPassword');
-  const loginBtn = document.getElementById('loginBtn');
-  const logoutBtn = document.getElementById('logoutBtn');
+  const loginScreen=document.getElementById("loginScreen");
+  const resetScreen=document.getElementById("resetScreen");
+  const appShell=document.getElementById("appShell");
+  const loginMsg=document.getElementById("loginMsg");
 
-  function showLogin(message=''){
-    loginScreen.classList.remove('hidden');
-    appShell.style.display='none';
+  function showLogin(message=""){
+    loginScreen.classList.remove("hidden");
+    resetScreen.classList.add("hidden");
+    appShell.style.display="none";
     loginMsg.textContent=message;
   }
 
-  async function loadProfile(session){
-    const {data,error} = await db
-      .from('profiles')
-      .select('user_id,email,full_name,role,student_id')
-      .eq('user_id', session.user.id)
-      .maybeSingle();
+  function roleLabel(r){
+    return ({admin:"ADMIN",exam_officer:"EXAM OFFICER",treasurer:"TREASURER",student:"STUDENT"})[r]||r;
+  }
 
-    if(error) throw error;
-    if(!data) throw new Error('Profile-ka user-kan lama helin.');
-    document.getElementById('userEmail').textContent = data.email || session.user.email || '';
-    document.getElementById('userRole').textContent = (data.role || '').replace('_',' ').toUpperCase();
-    document.body.dataset.role = data.role || '';
-    window.currentProfile = data;
-
-    document.querySelectorAll('[data-role]').forEach(el=>{
-      const allowed=(el.dataset.role||'').split(',').map(x=>x.trim());
-      el.style.display = allowed.includes(data.role) ? '' : 'none';
+  function applyRoleVisibility(role){
+    document.querySelectorAll("[data-roles]").forEach(el=>{
+      const ok=el.dataset.roles.split(",").includes(role);
+      el.classList.toggle("role-hidden",!ok);
     });
+    document.querySelectorAll("[data-page-roles]").forEach(el=>{
+      const ok=el.dataset.pageRoles.split(",").includes(role);
+      el.classList.toggle("role-hidden",!ok);
+    });
+    const dashboard=document.getElementById("dashboard");
+    const note=document.getElementById("studentResultsNote");
+    const filters=document.getElementById("resultsFilters");
+    const heading=document.getElementById("resultsHeading");
+    if(role==="student"){
+      dashboard.classList.add("role-hidden");
+      note.style.display="";
+      note.textContent="🎓 Student: waxaad arki kartaa natiijooyinka Student ID-gaaga oo keliya.";
+      filters.style.display="none";
+      heading.textContent="My Exam Results";
+    }else{
+      dashboard.classList.remove("role-hidden");
+      note.style.display="none";
+      filters.style.display="";
+      heading.textContent="Results Search & Filter";
+    }
+  }
 
-    loginScreen.classList.add('hidden');
-    appShell.style.display='flex';
+  async function loadProfile(session){
+    const {data,error}=await db.from("profiles")
+      .select("user_id,email,full_name,role,student_id")
+      .eq("user_id",session.user.id).maybeSingle();
+    if(error) throw error;
+    if(!data) throw new Error("Profile-ka user-kan lama helin. Admin ha kuu sameeyo role.");
+    if(!["admin","exam_officer","treasurer","student"].includes(data.role))
+      throw new Error("Role-kan lama aqoonsana.");
+    if(data.role==="student" && !data.student_id)
+      throw new Error("Student account-kan wali looma xirin Student ID.");
+    window.currentProfile=data;
+    document.body.dataset.role=data.role;
+    document.getElementById("userEmail").textContent=data.email||session.user.email||"";
+    document.getElementById("userRole").textContent=roleLabel(data.role);
+    applyRoleVisibility(data.role);
+    loginScreen.classList.add("hidden");
+    resetScreen.classList.add("hidden");
+    appShell.style.display="flex";
+    if(window.initDb) await window.initDb();
+    if(window.applyRoleDashboard) window.applyRoleDashboard(data);
+    if(window.loadAll) await window.loadAll();
+    if(window.goToRoleStart) window.goToRoleStart(data.role);
   }
 
   async function checkSession(){
-    const {data:{session}} = await db.auth.getSession();
-    if(!session){ showLogin(); return; }
-    try{ await loadProfile(session); }
-    catch(e){ await db.auth.signOut(); showLogin(e.message); }
+    const {data:{session}}=await db.auth.getSession();
+    if(session){
+      try{await loadProfile(session)}catch(e){await db.auth.signOut();showLogin(e.message)}
+    }else showLogin();
   }
 
-  loginBtn.addEventListener('click', async ()=>{
-    loginMsg.textContent='Logging in...';
-    const email=emailEl.value.trim();
-    const password=passEl.value;
-    if(!email || !password){ loginMsg.textContent='Email iyo password geli.'; return; }
-
+  document.getElementById("loginBtn").onclick=async()=>{
+    loginMsg.textContent="Logging in...";
+    const email=document.getElementById("loginEmail").value.trim();
+    const password=document.getElementById("loginPassword").value;
+    if(!email||!password){loginMsg.textContent="Email iyo password geli.";return}
     const {data,error}=await db.auth.signInWithPassword({email,password});
-    if(error){ loginMsg.textContent=error.message; return; }
+    if(error){loginMsg.textContent=error.message;return}
+    try{await loadProfile(data.session)}catch(e){await db.auth.signOut();showLogin(e.message)}
+  };
 
-    try{ await loadProfile(data.session); }
-    catch(e){ await db.auth.signOut(); showLogin(e.message); }
-  });
+  document.getElementById("loginPassword").onkeydown=e=>{
+    if(e.key==="Enter")document.getElementById("loginBtn").click();
+  };
 
-  passEl.addEventListener('keydown',e=>{
-    if(e.key==='Enter') loginBtn.click();
-  });
+  document.getElementById("forgotBtn").onclick=async()=>{
+    const email=document.getElementById("loginEmail").value.trim();
+    if(!email){loginMsg.textContent="Marka hore geli email-kaaga.";return}
+    const {error}=await db.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
+    loginMsg.textContent=error?error.message:"Haddii account-ku jiro, reset link ayaa email-ka loo diray.";
+  };
 
-  logoutBtn.addEventListener('click',async ()=>{
+  document.getElementById("resetBtn").onclick=async()=>{
+    const a=document.getElementById("newPassword").value;
+    const b=document.getElementById("newPassword2").value;
+    const m=document.getElementById("resetMsg");
+    if(a.length<6){m.textContent="Password-ku ugu yaraan 6 characters ha noqdo.";return}
+    if(a!==b){m.textContent="Labada password isku mid ma aha.";return}
+    const {error}=await db.auth.updateUser({password:a});
+    if(error){m.textContent=error.message;return}
+    m.textContent="Password-ka waa la beddelay. Hadda Login samee.";
+    setTimeout(async()=>{await db.auth.signOut();showLogin()},1200);
+  };
+
+  document.getElementById("logoutBtn").onclick=async()=>{
     await db.auth.signOut();
     location.reload();
+  };
+
+  db.auth.onAuthStateChange(async(event,session)=>{
+    if(event==="PASSWORD_RECOVERY"){
+      resetScreen.classList.remove("hidden");
+      loginScreen.classList.add("hidden");
+      appShell.style.display="none";
+    }
   });
 
   await checkSession();
 })();
 </script>
-
 <script src="app.js"></script>
 </body>
 </html>
