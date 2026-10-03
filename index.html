@@ -19,10 +19,7 @@
 
   <main class="main">
     <header class="topbar">
-      <div>
-        <h1>JAWIIL Primary and Secondary School</h1>
-        <p>Student Management System</p>
-      </div>
+      <div><h1>JAWIIL Primary and Secondary School</h1><p>Student Management System</p></div>
     </header>
 
     <section id="dashboard" class="page active">
@@ -33,10 +30,7 @@
         <div class="card"><b id="statResults">0</b><span>Results</span></div>
         <div class="card"><b id="statPaid">$0.00</b><span>Total Paid</span></div>
       </div>
-      <div class="panel welcome">
-        <h3>Welcome</h3>
-        <p>Register students, enter examinations, record results and manage school finance.</p>
-      </div>
+      <div class="panel welcome"><h3>Welcome</h3><p>Register students, define exam entries, enter all subject results together and manage school finance.</p></div>
     </section>
 
     <section id="students" class="page">
@@ -47,23 +41,16 @@
           <input id="admission_no" placeholder="Admission Number">
           <input id="full_name" placeholder="Full Name *" required>
           <select id="gender" required><option value="">Gender *</option><option>Male</option><option>Female</option></select>
-          <input id="dob" type="date">
-          <input id="phone" placeholder="Parent/Student Phone">
-          <input id="guardian" placeholder="Parent/Guardian Name">
-          <input id="guardian_phone" placeholder="Guardian Phone">
-          <select id="level" required>
-            <option value="">School Level *</option>
-            <option>Primary</option><option>Middle</option><option>Secondary</option>
-          </select>
+          <input id="dob" type="date"><input id="phone" placeholder="Parent/Student Phone">
+          <input id="guardian" placeholder="Parent/Guardian Name"><input id="guardian_phone" placeholder="Guardian Phone">
+          <select id="level" required><option value="">School Level *</option><option>Primary</option><option>Middle</option><option>Secondary</option></select>
           <select id="grade" required><option value="">Class/Grade *</option></select>
-          <input id="academic_year" placeholder="Academic Year e.g. 2026/2027">
-          <input id="registration_date" type="date">
+          <input id="academic_year" placeholder="Academic Year e.g. 2026/2027"><input id="registration_date" type="date">
           <input id="address" class="full" placeholder="Address">
           <button class="primary full" type="submit">Register Student</button>
         </form>
       </div>
-      <div class="panel">
-        <div class="toolbar"><h3>Registered Students</h3><input id="studentSearch" placeholder="🔎 Search ID, name, class, level, phone"></div>
+      <div class="panel"><div class="toolbar"><h3>Registered Students</h3><input id="studentSearch" placeholder="🔎 Search ID, name, class, level, phone"></div>
         <div class="tablewrap"><table><thead><tr><th>ID</th><th>Name</th><th>Gender</th><th>Level</th><th>Class</th><th>Phone</th><th>Action</th></tr></thead><tbody id="studentRows"></tbody></table></div>
       </div>
     </section>
@@ -71,41 +58,44 @@
     <section id="exams" class="page">
       <h2>📝 Exam Entry</h2>
       <div class="panel">
+        <p class="hint">Geli Student ID-ga. Magaca, level-ka iyo class-ka ardayga si automatic ah ayey u soo baxayaan.</p>
         <form id="examForm" class="grid">
           <input id="exam_id" placeholder="Exam ID *" required>
           <input id="exam_name" placeholder="Exam Name *" required>
+          <input id="exam_student_id" placeholder="Student ID *" required>
+          <input id="exam_student_name" placeholder="Student Name" readonly>
+          <input id="exam_student_level" placeholder="School Level" readonly>
+          <input id="exam_student_grade" placeholder="Class/Grade" readonly>
           <select id="exam_level" required><option value="">School Level *</option><option>Primary</option><option>Middle</option><option>Secondary</option></select>
           <select id="exam_grade" required><option value="">Class/Grade *</option></select>
           <select id="subject" required><option value="">Subject *</option></select>
-          <input id="exam_year" placeholder="Academic Year">
-          <select id="semester"><option>Semester 1</option><option>Semester 2</option><option>Annual</option></select>
-          <input id="exam_date" type="date">
-          <input id="total_marks" type="number" value="100" min="1" placeholder="Total Marks">
-          <input id="pass_mark" type="number" value="50" min="0" placeholder="Pass Mark">
-          <button class="primary full" type="submit">Save Exam</button>
+          <input id="exam_year" placeholder="Academic Year"><select id="semester"><option>Semester 1</option><option>Semester 2</option><option>Annual</option></select>
+          <input id="exam_date" type="date"><input id="total_marks" type="number" value="100" min="1" placeholder="Total Marks"><input id="pass_mark" type="number" value="50" min="0" placeholder="Pass Mark">
+          <button class="primary full" type="submit">Save Exam Entry</button>
         </form>
       </div>
-      <div class="panel"><div class="tablewrap"><table><thead><tr><th>Exam ID</th><th>Name</th><th>Level</th><th>Class</th><th>Subject</th><th>Year</th><th>Action</th></tr></thead><tbody id="examRows"></tbody></table></div></div>
+      <div class="panel"><div class="tablewrap"><table><thead><tr><th>Exam ID</th><th>Student</th><th>Name</th><th>Level</th><th>Class</th><th>Subject</th><th>Year</th><th>Action</th></tr></thead><tbody id="examRows"></tbody></table></div></div>
     </section>
 
     <section id="results" class="page">
-      <h2>📊 Student Exam Result</h2>
+      <h2>📊 Student Exam Results</h2>
       <div class="panel">
-        <form id="resultForm" class="grid">
-          <input id="result_student_id" placeholder="Student ID *" required>
+        <p class="hint">Student ID iyo Exam ID geli. Kadib dhammaan maadooyinka exam-kaas ee ardayga waxay hal mar ku soo muuqanayaan.</p>
+        <div class="grid">
+          <input id="result_student_id" placeholder="Student ID *">
           <input id="result_student_name" placeholder="Student Name" readonly>
-          <input id="result_exam_id" placeholder="Exam ID *" required>
-          <input id="result_subject" placeholder="Subject *" required>
-          <input id="result_total" type="number" value="100" min="1">
-          <input id="marks" type="number" min="0" placeholder="Marks Obtained *" required>
-          <input id="result_grade" placeholder="Grade" readonly>
-          <input id="result_status" placeholder="Result" readonly>
-          <textarea id="result_remarks" class="full" placeholder="Remarks"></textarea>
-          <button class="primary full" type="submit">Save Result</button>
-        </form>
+          <input id="result_student_level" placeholder="School Level" readonly>
+          <input id="result_student_grade" placeholder="Class/Grade" readonly>
+          <input id="result_exam_id" placeholder="Exam ID *">
+          <input id="result_exam_name" placeholder="Exam Name" readonly>
+        </div>
+        <div id="resultSubjects" class="subject-entry-wrap" style="display:none">
+          <div class="tablewrap"><table class="result-entry-table"><thead><tr><th>Subject</th><th>Total</th><th>Marks Obtained</th><th>Grade</th><th>Status</th><th>Remarks</th></tr></thead><tbody id="resultSubjectRows"></tbody></table></div>
+          <button id="saveAllResults" class="primary full" type="button">Save All Subject Results</button>
+        </div>
+        <div id="resultMessage" class="hint"></div>
       </div>
-      <div class="panel">
-        <div class="toolbar"><h3>Results</h3><input id="resultSearch" placeholder="🔎 Search student, subject, exam"></div>
+      <div class="panel"><div class="toolbar"><h3>Saved Results</h3><input id="resultSearch" placeholder="🔎 Search student, subject, exam"></div>
         <div class="tablewrap"><table><thead><tr><th>Student</th><th>Exam</th><th>Subject</th><th>Marks</th><th>Grade</th><th>Status</th><th>Action</th></tr></thead><tbody id="resultRows"></tbody></table></div>
       </div>
     </section>
@@ -113,18 +103,18 @@
     <section id="finance" class="page">
       <h2>💰 Finance</h2>
       <div class="panel">
+        <p class="hint">Student ID geli. Magaca ardayga si automatic ah ayuu u soo baxayaa.</p>
         <form id="financeForm" class="grid">
           <input id="transaction_id" placeholder="Transaction ID *" required>
           <input id="finance_student_id" placeholder="Student ID *" required>
           <input id="finance_student_name" placeholder="Student Name" readonly>
+          <input id="finance_student_level" placeholder="School Level" readonly>
+          <input id="finance_student_grade" placeholder="Class/Grade" readonly>
           <select id="fee_type"><option>Tuition Fee</option><option>Registration Fee</option><option>Exam Fee</option><option>Other</option></select>
-          <input id="total_fee" type="number" min="0" value="0" placeholder="Total Fee">
-          <input id="amount_paid" type="number" min="0" value="0" placeholder="Amount Paid">
-          <input id="balance" type="number" readonly placeholder="Balance">
-          <input id="payment_date" type="date">
+          <input id="total_fee" type="number" min="0" value="0" placeholder="Total Fee"><input id="amount_paid" type="number" min="0" value="0" placeholder="Amount Paid">
+          <input id="balance" type="number" readonly placeholder="Balance"><input id="payment_date" type="date">
           <select id="payment_method"><option>Cash</option><option>Mobile Money</option><option>Bank</option><option>Card</option></select>
-          <input id="receipt_no" placeholder="Receipt Number">
-          <textarea id="finance_remarks" class="full" placeholder="Remarks"></textarea>
+          <input id="receipt_no" placeholder="Receipt Number"><textarea id="finance_remarks" class="full" placeholder="Remarks"></textarea>
           <button class="primary full" type="submit">Save Payment</button>
         </form>
       </div>
