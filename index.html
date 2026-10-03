@@ -1,127 +1,126 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>JAWIIL Primary and Secondary School</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div class="app">
   <aside class="sidebar">
-    <div class="brand">JAWIIL<br><small>Primary & Secondary School</small></div>
+    <div class="brand">JAWIIL<br><small>School Management</small></div>
     <button class="nav active" data-page="dashboard">🏠 Dashboard</button>
-    <button class="nav" data-page="students">🎓 Students</button>
+    <button class="nav" data-page="students">👨‍🎓 Student Registration</button>
     <button class="nav" data-page="exams">📝 Exam Entry</button>
     <button class="nav" data-page="results">📊 Exam Results</button>
     <button class="nav" data-page="finance">💰 Finance</button>
   </aside>
+
   <main class="main">
-    <header class="topbar"><div><h1>JAWIIL Primary and Secondary School</h1><p>Student Management System</p></div></header>
+    <header class="topbar">
+      <div><h1>JAWIIL Primary and Secondary School</h1><p>Student Management System</p></div>
+      <div id="connection" class="connection">Checking database…</div>
+    </header>
 
     <section id="dashboard" class="page active">
-      <h2>Dashboard</h2>
+      <h2>🏠 Dashboard</h2>
       <div class="cards">
-        <div class="card"><b id="statStudents">0</b><span>Students</span></div>
-        <div class="card"><b id="statExams">0</b><span>Exam Entries</span></div>
-        <div class="card"><b id="statResults">0</b><span>Results</span></div>
-        <div class="card"><b id="statPaid">$0.00</b><span>Total Paid</span></div>
+        <div class="card"><b id="countStudents">0</b><span>Students</span></div>
+        <div class="card"><b id="countExams">0</b><span>Exam Entries</span></div>
+        <div class="card"><b id="countResults">0</b><span>Results</span></div>
+        <div class="card"><b id="totalPaid">$0.00</b><span>Total Paid</span></div>
       </div>
-      <div class="panel welcome"><h3>Welcome</h3><p>Register students, enter complete exam data, view student results and manage school finance.</p></div>
+      <div class="panel">
+        <h3>Quick Search</h3>
+        <div class="searchrow">
+          <input id="globalSearch" placeholder="Search Student ID, name, phone…">
+          <button id="globalSearchBtn" class="primary">Search</button>
+        </div>
+        <div id="globalSearchOutput" class="tablewrap"></div>
+      </div>
     </section>
 
     <section id="students" class="page">
-      <h2>🎓 Student Registration</h2>
+      <h2>👨‍🎓 Student Registration</h2>
+      <form id="studentForm" class="panel formgrid">
+        <input name="student_id" id="student_id" placeholder="Student ID *" required>
+        <input name="admission_no" placeholder="Admission No">
+        <input name="full_name" placeholder="Full Name *" required>
+        <select name="gender"><option value="">Gender</option><option>Male</option><option>Female</option></select>
+        <input name="dob" type="date" title="Date of Birth">
+        <input name="phone" placeholder="Phone">
+        <input name="guardian" placeholder="Guardian Name">
+        <input name="guardian_phone" placeholder="Guardian Phone">
+        <select name="level" id="student_level" required><option value="">School Level *</option><option>Primary</option><option>Middle</option><option>Secondary</option></select>
+        <select name="grade" id="student_grade" required><option value="">Class/Grade *</option></select>
+        <input name="academic_year" id="student_year" placeholder="Academic Year" value="2026">
+        <input name="registration_date" type="date" id="registration_date">
+        <input name="address" class="wide" placeholder="Address">
+        <div class="actions wide"><button class="primary" type="submit">💾 Save Student</button><button type="reset" class="secondary">Clear</button></div>
+        <div id="studentMsg" class="msg wide"></div>
+      </form>
       <div class="panel">
-        <form id="studentForm" class="grid">
-          <input id="student_id" placeholder="Student ID *" required>
-          <input id="admission_no" placeholder="Admission Number">
-          <input id="full_name" placeholder="Full Name *" required>
-          <select id="gender" required><option value="">Gender *</option><option>Male</option><option>Female</option></select>
-          <input id="dob" type="date"><input id="phone" placeholder="Parent/Student Phone">
-          <input id="guardian" placeholder="Parent/Guardian Name"><input id="guardian_phone" placeholder="Guardian Phone">
-          <select id="level" required><option value="">School Level *</option><option>Primary</option><option>Middle</option><option>Secondary</option></select>
-          <select id="grade" required><option value="">Class/Grade *</option></select>
-          <input id="academic_year" placeholder="Academic Year e.g. 2026/2027"><input id="registration_date" type="date">
-          <input id="address" class="full" placeholder="Address">
-          <button class="primary full" type="submit">Register Student</button>
-        </form>
-      </div>
-      <div class="panel"><div class="toolbar"><h3>Registered Students</h3><input id="studentSearch" placeholder="🔎 Search ID, name, class, level, phone"></div>
-        <div class="tablewrap"><table><thead><tr><th>ID</th><th>Name</th><th>Gender</th><th>Level</th><th>Class</th><th>Phone</th><th>Action</th></tr></thead><tbody id="studentRows"></tbody></table></div>
+        <div class="toolbar"><h3>Registered Students</h3><div class="searchrow"><input id="studentSearch" placeholder="Search Student ID or Name"><button id="studentSearchBtn">Search</button></div></div>
+        <div class="tablewrap"><table><thead><tr><th>Student ID</th><th>Name</th><th>Level</th><th>Class</th><th>Phone</th><th>Year</th></tr></thead><tbody id="studentRows"></tbody></table></div>
       </div>
     </section>
 
     <section id="exams" class="page">
       <h2>📝 Exam Entry</h2>
-      <div class="panel">
-        <p class="hint">Halkan ayaa lagu geliyaa <b>dhammaan xogta exam-ka iyo marks-ka</b>. Student ID geli, xogta ardayga ayaa automatic u soo baxaysa. Dhammaan maadooyinka heerka ardayga hal mar ayaa lagu soo bandhigayaa.</p>
-        <form id="examForm" class="grid">
-          <input id="exam_id" placeholder="Exam ID *" required>
-          <input id="exam_name" placeholder="Exam Name *" required>
+      <form id="examForm" class="panel">
+        <div class="formgrid">
           <input id="exam_student_id" placeholder="Student ID *" required>
           <input id="exam_student_name" placeholder="Student Name" readonly>
-          <input id="exam_student_level" placeholder="School Level" readonly>
-          <input id="exam_student_grade" placeholder="Class/Grade" readonly>
-          <input id="exam_year" placeholder="Academic Year">
-          <select id="semester"><option>Semester 1</option><option>Semester 2</option><option>Annual</option></select>
+          <input id="exam_level" placeholder="School Level" readonly>
+          <input id="exam_grade" placeholder="Class/Grade" readonly>
+          <input id="exam_id" placeholder="Exam ID *" required>
+          <input id="exam_name" placeholder="Exam Name *" required>
+          <input id="exam_year" placeholder="Academic Year" value="2026">
+          <select id="semester"><option>Term 1</option><option>Term 2</option><option>Term 3</option></select>
           <input id="exam_date" type="date">
-        </form>
-        <div id="examSubjects" class="subject-entry-wrap" style="display:none">
-          <h3 id="examSubjectTitle">Subjects</h3>
-          <p class="hint">Maadooyinka heerka ardayga ayaa si automatic ah hoos ugu soo baxaya. Subject kasta wuxuu leeyahay meel marks lagu geliyo.</p>
-          <div id="subjectList" class="subject-list"></div>
-          <div class="tablewrap"><table class="result-entry-table"><thead><tr><th>Subject</th><th>Total</th><th>Pass Mark</th><th>Marks Obtained</th><th>Grade</th><th>Status</th><th>Remarks</th></tr></thead><tbody id="examSubjectRows"></tbody></table></div>
-          <button id="saveExamBundle" class="primary full" type="button">Save Complete Exam</button>
         </div>
-        <div id="examMessage" class="hint"></div>
-      </div>
-      <div class="panel"><div class="toolbar"><h3>Saved Exam Entries</h3><input id="examSearch" placeholder="🔎 Search student, exam, subject"></div>
-        <div class="tablewrap"><table><thead><tr><th>Exam ID</th><th>Student</th><th>Name</th><th>Level</th><th>Class</th><th>Subject</th><th>Year</th><th>Marks</th><th>Grade</th><th>Status</th><th>Action</th></tr></thead><tbody id="examRows"></tbody></table></div></div>
+        <div id="examStudentHint" class="msg"></div>
+        <div id="examSubjects" class="subject-box hidden">
+          <h3>Subjects — geli Marks-ka maado kasta</h3>
+          <div class="tablewrap"><table class="subjects"><thead><tr><th>Subject</th><th>Total</th><th>Pass</th><th>Marks</th><th>Grade</th><th>Status</th><th>Remarks</th></tr></thead><tbody id="examSubjectRows"></tbody></table></div>
+          <div class="actions"><button type="submit" class="primary">💾 Save Complete Exam</button></div>
+          <div class="msg">Dhammaan maadooyinka waxaa hal mar lagu kaydinayaa Exam Entry.</div>
+        </div>
+      </form>
     </section>
+
     <section id="results" class="page">
       <h2>📊 Exam Results</h2>
+      <div class="panel"><p><b>OUTPUT KELIYA.</b> Halkan wax natiijo ah laguma gelinayo. Natiijooyinka waxay si toos ah uga yimaadaan Exam Entry.</p></div>
       <div class="panel">
-        <p class="hint"><b>Natiijooyinka kaliya (OUTPUT).</b> Halkan xog cusub laguma gelinayo. Natiijooyinka waxaa si toos ah looga akhriyaa <b>Exam Entry</b>.</p>
-        <div class="search-box">
-          <input id="resultStudentSearch" placeholder="Student ID ama magaca">
-          <input id="resultExamSearch" placeholder="Exam ID ama Exam Name">
-          <button id="resultSearchBtn" class="primary" type="button">🔎 Search</button>
-          <button id="resultClearBtn" class="secondary" type="button">Clear</button>
-        </div>
-      </div>
-      <div class="panel">
-        <div class="toolbar"><h3>Student Exam Results</h3><span id="resultCount" class="hint"></span></div>
-        <div class="tablewrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Student ID</th><th>Student</th><th>Exam</th><th>Subject</th>
-                <th>Total</th><th>Marks</th><th>Grade</th><th>Status</th><th>Remarks</th>
-              </tr>
-            </thead>
-            <tbody id="resultRows"></tbody>
-          </table>
-        </div>
+        <div class="toolbar"><h3>Results Search</h3><div class="searchrow"><input id="resultSearch" placeholder="Student ID, name, Exam ID, subject"><button id="resultSearchBtn" class="primary">Search</button></div></div>
+        <div id="resultSummary" class="summary"></div>
+        <div class="tablewrap"><table><thead><tr><th>Student ID</th><th>Student</th><th>Exam</th><th>Subject</th><th>Total</th><th>Marks</th><th>Grade</th><th>Status</th><th>Remarks</th></tr></thead><tbody id="resultRows"></tbody></table></div>
       </div>
     </section>
 
     <section id="finance" class="page">
       <h2>💰 Finance</h2>
+      <form id="financeForm" class="panel formgrid">
+        <input id="finance_transaction_id" placeholder="Transaction ID">
+        <input id="finance_student_id" placeholder="Student ID *" required>
+        <input id="finance_student_name" placeholder="Student Name" readonly>
+        <input id="finance_fee_type" placeholder="Fee Type *" required>
+        <input id="finance_total_fee" type="number" step="0.01" placeholder="Total Fee" required>
+        <input id="finance_amount_paid" type="number" step="0.01" placeholder="Amount Paid" required>
+        <input id="finance_balance" placeholder="Balance" readonly>
+        <input id="finance_payment_date" type="date">
+        <select id="finance_method"><option>Cash</option><option>Mobile Money</option><option>Bank</option><option>Other</option></select>
+        <input id="finance_receipt_no" placeholder="Receipt No">
+        <input id="finance_remarks" class="wide" placeholder="Remarks">
+        <div class="actions wide"><button class="primary" type="submit">💾 Save Payment</button><button type="reset">Clear</button></div>
+        <div id="financeMsg" class="msg wide"></div>
+      </form>
       <div class="panel">
-        <p class="hint">Student ID geli. Magaca ardayga si automatic ah ayuu u soo baxayaa.</p>
-        <form id="financeForm" class="grid">
-          <input id="transaction_id" placeholder="Transaction ID *" required><input id="finance_student_id" placeholder="Student ID *" required>
-          <input id="finance_student_name" placeholder="Student Name" readonly><input id="finance_student_level" placeholder="School Level" readonly><input id="finance_student_grade" placeholder="Class/Grade" readonly>
-          <select id="fee_type"><option>Tuition Fee</option><option>Registration Fee</option><option>Exam Fee</option><option>Other</option></select>
-          <input id="total_fee" type="number" min="0" value="0" placeholder="Total Fee"><input id="amount_paid" type="number" min="0" value="0" placeholder="Amount Paid">
-          <input id="balance" type="number" readonly placeholder="Balance"><input id="payment_date" type="date">
-          <select id="payment_method"><option>Cash</option><option>Mobile Money</option><option>Bank</option><option>Card</option></select>
-          <input id="receipt_no" placeholder="Receipt Number"><textarea id="finance_remarks" class="full" placeholder="Remarks"></textarea>
-          <button class="primary full" type="submit">Save Payment</button>
-        </form>
+        <div class="toolbar"><h3>Finance Records</h3><div class="searchrow"><input id="financeSearch" placeholder="Student ID, name, fee type"><button id="financeSearchBtn">Search</button></div></div>
+        <div class="tablewrap"><table><thead><tr><th>Student</th><th>Fee</th><th>Total</th><th>Paid</th><th>Balance</th><th>Date</th><th>Method</th></tr></thead><tbody id="financeRows"></tbody></table></div>
       </div>
-      <div class="panel"><div class="tablewrap"><table><thead><tr><th>Transaction</th><th>Student</th><th>Fee</th><th>Total</th><th>Paid</th><th>Balance</th><th>Date</th><th>Action</th></tr></thead><tbody id="financeRows"></tbody></table></div></div>
     </section>
   </main>
 </div>
